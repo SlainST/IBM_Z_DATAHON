@@ -10,6 +10,14 @@ from safenet.state.store import MemoryStore, PostgresStore
 PG_URL = os.getenv("SAFENET_TEST_DATABASE_URL", "")
 
 
+@pytest.fixture(autouse=True)
+def fallback_models(monkeypatch, tmp_path):
+    """The engine tests run on the fallback rules, so they give the same answer whether or not trained model
+    files are in models/ (they are on the server). tests/test_models.py checks the trained files."""
+    from safenet.ml import models
+    monkeypatch.setattr(models, "MODELS_DIR", tmp_path)
+
+
 @pytest.fixture(params=["memory"] + (["postgres"] if PG_URL else []))
 def store(request):
     if request.param == "memory":

@@ -1,0 +1,5 @@
+# Training the models (train.py), on the LinuxONE server.
+# numpy, scipy, scikit-learn, joblib and pandas come from the OS (apt python3-*), like the API's: the model files
+# must be saved with the same scikit-learn the API loads them with (1.4.1.post1 / numpy 1.26.4 on the server).
+-r server.txt
+pandas>=2.1
