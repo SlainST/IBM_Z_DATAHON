@@ -1,0 +1,22 @@
+# systemd user unit for the SafeNet API (restarts on crash, starts at boot with linger).
+# Install, on the server:
+#   mkdir -p ~/.config/systemd/user
+#   cp ~/safenet/deploy/linuxone/safenet-api.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now safenet-api
+#   sudo loginctl enable-linger $USER     # once; else it stops at logout and doesn't start at boot
+# Logs: journalctl --user -u safenet-api -f
+[Unit]
+Description=SafeNet moderation API
+After=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h/safenet
+ExecStart=/bin/bash %h/safenet/deploy/linuxone/run_api.sh
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

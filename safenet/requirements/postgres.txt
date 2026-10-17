@@ -1,0 +1,2 @@
+# Postgres driver: pure Python, loads the OS libpq5. setup_server.sh installs it once libpq5 is there.
+psycopg[pool]>=3.1

@@ -1,0 +1,10 @@
+# pip packages for the LinuxONE (s390x) server.
+# numpy, scipy, scikit-learn and joblib come from the OS (apt python3-*): pip has no s390x wheels
+# for them, so the venv is created with --system-site-packages to see them.
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+# httptools: without it uvicorn falls back to h11, and keep-alive requests wait ~50 ms each on
+# Nagle/delayed ACK (measured on the LinuxONE box: 155 -> 5,400 msg/s). Both build from source on s390x.
+httptools>=0.6
+uvloop>=0.19
