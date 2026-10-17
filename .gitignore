@@ -1,0 +1,24 @@
+# Secrets
+*.pem
+config/api_keys.toml
+**/config/api_keys.toml
+deploy/linuxone/safenet.env
+**/deploy/linuxone/safenet.env
+deploy/docker/.env
+**/deploy/docker/.env
+.env
+*.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Models and logs
+models/*.joblib
+**/models/*.joblib
+*.joblib
+logs/
+*.log
