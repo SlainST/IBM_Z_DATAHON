@@ -43,9 +43,9 @@ def payload(path: str, wid: int, i: int) -> dict:
     if path.startswith("/v1/moderate"):
         return {"text": text, "user_id": f"bench_u{wid}"}
     return {
-        "sender_id": f"bench_u{random.randint(1, 200)}",
-        "recipient_id": f"bench_u{random.randint(201, 400)}",
-        "group_id": f"bench_g{random.randint(1, 20)}",
+        "sender_id": f"bench_u{random.randint(1, 5000)}",
+        "recipient_id": f"bench_u{random.randint(5001, 10000)}",
+        "group_id": f"bench_g{random.randint(1, 50)}",
         "message_id": f"bench_{os.getpid()}_{wid}_{i}_{time.time_ns()}",
         "text": text,
     }
