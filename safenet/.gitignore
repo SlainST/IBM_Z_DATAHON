@@ -1,0 +1,7 @@
+# Veri dosyaları GitHub'a yüklenmez (lisans + boyut). README'de indirme linkleri verilir.
+veri/
+__pycache__/
+
+# Kişisel ayarlar ve anahtarlar: asla yüklenmez
+.vscode/
+*.pem

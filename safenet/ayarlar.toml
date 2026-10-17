@@ -1,0 +1,157 @@
+# SafeNet ayarları
+#
+# SafeNet bir güvenlik API servisidir, uygulama değildir. Platformlar API'ye bağlanır;
+# her platformun ayarlarını SafeNet ekibi bu dosyada YAPILANDIRIR (en alttaki [platform.*] bölümleri).
+#
+# Okuma sırası (ayarlar.py bu birleştirmeyi yapar):
+#   1) [varsayilan]
+#   2) platformun seçtiği hazır profil: [profil.*]
+#   3) platforma özel değerler: [platform.<platform_id>]
+#   4) sohbet türü: [kanal.*]
+#
+# 0-1 arası sayılar modelin verdiği "zararlı olma ihtimali"dir: 0.85 = %85.
+# Bu değerler BAŞLANGIÇ TAHMİNİDİR; model eğitildikten sonra test verisi, belirsiz set ve
+# sohbet simülasyonlarıyla ölçülerek ayarlanacak.
+#
+# Değişmeyen kurallar (ayar değil):
+#   - SafeNet her mesaj için ALICIYA neyin teslim edileceğine karar verir: teslim / sansürlü teslim / beklet / engelle.
+#   - Puanlar üç seviyede ayrı ayrı tutulur: platform > topluluk > kullanıcı (+ gönderen-alıcı ilişkisi).
+#   - Mesaj metni SAKLANMAZ: sadece puanlar, sayaçlar ve son mesajların temiz olup olmadığı tutulur.
+#   - Arkadaşlar arası küfüre indirim yoktur (çocukları korumak için): küfür kimden gelirse gelsin puanlanır.
+#   - kufur_listesi.csv'deki her kelime HER ZAMAN sansürlenir.
+#   - Bir kimlik kelimesinin (muslim, gay, black, woman...) SADECE GEÇMESİ puan eklemez
+#     ("I'm a proud Muslim"). Kimliğe yönelik SALDIRI ise [kimlik] bölümündeki puanları ekler (kimlik.py).
+#   - API anahtarları bu dosyada DEĞİL, ayrı ve gizli tutulur; her anahtar bir platform_id'ye eşlenir.
+
+[varsayilan]
+ad = "Varsayılan"
+
+[varsayilan.mesaj]                 # tek bir mesaj için karar
+sari_esigi = 0.50                  # zararlılık bundan yüksekse SARI: küfürler sansürlenerek teslim edilir, gizli puan artar
+cok_kotu_esigi = 0.85              # bir cümlenin KELİMESİZ puanı bundan yüksekse KIRMIZI: mesajın tamamı engellenir
+tehdit_esigi = 0.60                # kategori "tehdit" ve zararlılık bundan yüksekse KIRMIZI (tehditte daha hassas)
+nefret_esigi = 0.75                # kategori ırk/din/cinsiyet ve kelimesiz puan bundan yüksekse KIRMIZI
+spam_kufur_orani = 0.30            # kelimelerin bu oranından fazlası küfürse KIRMIZI (küfür yağmuru / spam)
+sari_davranis = "teslim_ve_uyari_onerisi"  # SARI mesaj: "teslim" | "teslim_ve_uyari_onerisi" | "beklet"
+                                   # (teslim = sansürlü teslim; uyarı önerisi platforma bilgi olarak döner; beklet = moderatöre)
+alinti_korumasi = true             # tırnak içinde ya da "he told me ..." diye aktarılan tehdit engellenmez, beklet kararı alır
+oyun_dili_serbest = false          # true: "kill / die / destroy" oyun bağlamındaysa (match, round, gg...) tehdit sayılmaz
+
+[varsayilan.gizli_puan]            # gönderen başına (topluluk içinde) tutulur, kimseye gösterilmez
+kelime_carpani = 1.0               # sansürlenen her küfür için: kufur_listesi.csv'deki seviye (1-10) x bu çarpan
+gizli_kufur_ek = 3                 # küfrü gizlemeye çalıştıysa (f*ck, sh1t) kelime başına ek puan
+mesaj_basina_ust_sinir = 15        # küfürlerden tek bir mesajda en fazla bu kadar puan gelir
+sari_mesaj = 10                    # SARI mesaj başına
+kirmizi_mesaj = 25                 # engellenen (KIRMIZI) mesaj başına
+tehdit_mesaj = 40                  # engellenen tehdit mesajı başına
+spam_mesaj = 20                    # engellenen spam mesajı başına
+# Puan zamanla DÜŞMEZ, sadece düzgün davranışla iyileşir ("temiz" mesaj = yeşil ve küfürsüz):
+iyilesme_penceresi = 10            # gönderenin son kaç mesajına bakılır
+iyilesme_esigi = 7                 # bu mesajların en az bu kadarı temizse...
+iyilesme_orani = 0.10              # ...her yeni temiz mesajda puan %10 azalır
+uyari_esigi = 40                   # bu puana ulaşınca cevapta platforma "gönderene uyarı göster" önerisi döner
+susturma_esigi = 70                # bu puana ulaşınca gönderen kısıtlanır: mesajları hiçbir alıcıya teslim edilmez
+susturma_sureleri_dk = [5, 60, 1440]  # 1., 2., 3. kısıtlamanın süresi: 5 dakika, 1 saat, 24 saat
+susturma_sonrasi_puan = 35         # kısıtlama bitince puan buraya iner (hemen tekrar kısıtlanmasın)
+kalici_kisitlama = "moderator_onayi"  # kalıcı kısıtlama sadece platform moderatörünün onayıyla
+
+[varsayilan.iliski]                # gönderen -> alıcı (A -> B) ilişkisi: A'nın sadece B'ye yazdıklarından gelen puan
+engel_esigi = 40                   # bu puana ulaşınca A'dan gelen mesajlar B'ye TESLİM EDİLMEZ.
+                                   # A'dan diğer kişilere giden mesajlar bundan etkilenmez.
+                                   # İlişki puanı da gönderen puanı gibi artar ve A'nın B'ye düzgün mesajlarıyla iyileşir.
+
+[varsayilan.kimlik]                # din, ırk, cinsiyet ve cinsel yönelime yönelik saldırılar (kimlik.py)
+                                   # Bu puanlar SADECE model mesajı zararlı bulduysa eklenir; normal puanların üstüne gelir.
+zararli_bahsetme = 10              # zararlı mesajda kimlik kelimesi geçiyor ama kimse hedef alınmıyor
+genelleme = 20                     # bir grubun tamamını aşağılama: "muslims are terrorists", "all women are stupid"
+hedefli_saldiri = 30               # birine kimliği üzerinden saldırı: "you dirty muslim", "you're such a girl"
+
+[varsayilan.karistirilabilir]
+baglam_ipucu_sayisi = 1            # karıştırılabilir kelimenin yanında en az bu kadar ipucu varsa ("duck" + "lake")
+                                   # olası yazım hatası sayılır: puan eklenmez, cevapta "olası düzeltme" döner
+
+# ---------------------------------------------------------------------------------------------
+# HAZIR PROFİLLER: platformlar bunlardan birini seçer. Sadece varsayılandan FARKLI değerler yazılır.
+# ---------------------------------------------------------------------------------------------
+
+[profil.sosyal_medya]
+ad = "Genel sosyal medya (varsayılan değerler)"
+
+[profil.egitim]
+ad = "Eğitim / çocuk platformu (en sıkı)"
+mesaj.sari_esigi = 0.40
+mesaj.cok_kotu_esigi = 0.75
+mesaj.tehdit_esigi = 0.50
+mesaj.nefret_esigi = 0.65
+mesaj.sari_davranis = "beklet"
+gizli_puan.iyilesme_esigi = 8     # 10 mesajın en az 8'i temiz olmalı
+gizli_puan.iyilesme_orani = 0.05   # ve daha yavaş iyileşir
+gizli_puan.uyari_esigi = 30
+gizli_puan.susturma_esigi = 50
+iliski.engel_esigi = 30
+kimlik.genelleme = 30
+kimlik.hedefli_saldiri = 40
+
+[profil.oyun]
+ad = "Oyun içi sohbet (en esnek)"
+mesaj.sari_esigi = 0.60
+mesaj.cok_kotu_esigi = 0.90
+mesaj.tehdit_esigi = 0.70
+mesaj.sari_davranis = "teslim"
+mesaj.oyun_dili_serbest = true
+gizli_puan.iyilesme_orani = 0.15   # daha hızlı iyileşir
+gizli_puan.uyari_esigi = 50
+gizli_puan.susturma_esigi = 90
+iliski.engel_esigi = 50
+
+[profil.kurumsal]
+ad = "Şirket içi yazışma"
+mesaj.sari_esigi = 0.45
+mesaj.cok_kotu_esigi = 0.80
+mesaj.tehdit_esigi = 0.55
+mesaj.sari_davranis = "beklet"
+gizli_puan.uyari_esigi = 35
+gizli_puan.susturma_esigi = 60
+kimlik.hedefli_saldiri = 40        # iş yerinde kimliğe yönelik saldırı ayrıca İK konusudur
+
+# ---------------------------------------------------------------------------------------------
+# PLATFORMLAR (müşteriler): her platformu SafeNet ekibi burada yapılandırır.
+#   profil = hazır profillerden biri; altına sadece bu platforma ÖZEL farklı değerler yazılır.
+#   Yeni platform = yeni bir [platform.<platform_id>] bloğu. Kod değişmez.
+# ---------------------------------------------------------------------------------------------
+
+[platform.demo_okul]
+ad = "Demo: okul mesajlaşma uygulaması"
+profil = "egitim"
+
+[platform.demo_oyun]
+ad = "Demo: çevrim içi oyun"
+profil = "oyun"
+gizli_puan.susturma_esigi = 80     # örnek özel ayar: bu platform oyun profilinden biraz daha sıkı olsun istedi
+
+[platform.demo_sosyal]
+ad = "Demo: sosyal medya uygulaması"
+profil = "sosyal_medya"
+
+# ---------------------------------------------------------------------------------------------
+# SOHBET TÜRLERİ (kanal). Şimdilik sadece birebir kullanılıyor; grup ve canlı yayın sonraki aşamada.
+# ---------------------------------------------------------------------------------------------
+
+[kanal.birebir]
+her_mesaj_hedefli = true           # özel mesajda her mesaj zaten karşıdaki kişiye yazılmıştır
+kimlik_carpani = 1.5               # özel mesajda kimlik saldırısı doğrudan karşıdaki kişiye yöneliktir: puan 1.5 kat
+
+[kanal.grup]
+her_mesaj_hedefli = false          # hedefli mi? sorusuna mesajın kendisine bakılarak cevap verilir
+kimlik_carpani = 1.0
+
+[kanal.canli_yayin]
+her_mesaj_hedefli = false
+kimlik_carpani = 1.0
+kimlik_baskini_hesap_sayisi = 3    # 60 sn içinde bu kadar farklı hesap kimlik saldırısı yaparsa "nefret baskını":
+                                   # baskın önlemi hemen açılır (normal baskın eşiğini beklemeden)
+baskin_hesap_sayisi = 5            # bu kadar FARKLI hesap...
+baskin_suresi_sn = 60              # ...bu kadar saniye içinde zararlı mesaj atarsa "baskın" (raid) sayılır
+baskin_onlemi = "yavas_mod"        # "yavas_mod" | "sadece_eski_hesaplar" (yeni açılan hesapların mesajı teslim edilmez)
+yavas_mod_sn = 10                  # yavaş modda bir hesaptan en fazla bu kadar saniyede bir mesaj teslim edilir
+yeni_hesap_carpani = 1.5           # yeni hesapların gizli puanı bu kat hızlı artar
