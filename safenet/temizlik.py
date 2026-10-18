@@ -41,6 +41,16 @@ KENAR = re.compile(r"([\"'(\[{]*)(.*?)([\"')\]},;:?!.]*)")  # kelimenin başınd
 # Emojiler ve resimli semboller (😂 🖕 ♥ ⭐ bayraklar, ten rengi işaretleri): tamamen silinir
 EMOJI = re.compile("[\U0001F000-\U0001FAFF☀-➿⌀-⏿⬀-⯿"
                    "︎️⃣〰〽㊗㊙©®™]")
+# Küfür yerine geçen emojiler: silinmeden önce listedeki kelimeye çevrilir (gizli küfür sayılır). Yalnız anlamı tek
+# olanlar: 💩 ("this game is 💩") ve 🍆 çoğu zaman şaka ya da sebze, listede değil.
+EMOJI_KUFUR = {"🖕": "fuck"}
+TEN_RENGI = re.compile("[🏻-🏿️]")
+
+
+def emoji_kufur(parca):
+    """"🖕", "🖕🏽", "🖕🖕" -> "fuck"; başka her şey -> None."""
+    t = TEN_RENGI.sub("", parca)
+    return EMOJI_KUFUR[t[0]] if t and len(set(t)) == 1 and t[0] in EMOJI_KUFUR else None
 
 
 def _aksansiz(kelime):
@@ -68,18 +78,41 @@ def _harfleri_duzelt(t, bulunanlar):
     return re.sub(r"\S+", duzelt, t)
 
 
+# Harf harf yazılmış bir dizide küfrün önünde ve arkasında kalan harfler yalnız bu kısa kelimelerden oluşabilir:
+# "a f u c k" (a fuck), "u r a f u c k", "s h i t s". "h e l l o"nun sonundaki "o", "c l a s s"ın başındaki "cl"
+# ve "a s s i g n"in sonundaki "ign" kelime değil: hello, class ve assign küfür sayılmaz.
+ARALIK_ONCE = frozenset({"a", "u", "ur", "ya", "you", "the", "go", "to", "so", "oh", "my", "is", "im", "ok", "lol"})
+ARALIK_SONRA = frozenset({"s", "es", "ing", "in", "er", "ers", "ed", "y", "u", "you", "off", "up", "lol"})
+
+
+def _parcalanir(harfler, kelimeler):
+    """harfler boş mu, ya da baştan sona kelimeler'den birleşiyor mu?"""
+    if not harfler:
+        return True
+    return any(harfler.startswith(k) and _parcalanir(harfler[len(k):], kelimeler) for k in kelimeler)
+
+
+def aralikli_kufur(harfler):
+    """Harf harf yazılmış bir dizideki en uzun küfür: (bas, uzunluk) ya da None. "afuck" -> (1, 4), "hello" -> None."""
+    for uzunluk in range(len(harfler), 2, -1):
+        for bas in range(len(harfler) - uzunluk + 1):
+            if (harfler[bas:bas + uzunluk] in ASIL and _parcalanir(harfler[:bas], ARALIK_ONCE)
+                    and _parcalanir(harfler[bas + uzunluk:], ARALIK_SONRA)):
+                return bas, uzunluk
+    return None
+
+
 def _aralikli_harfler(t, bulunanlar):
     """f u c k, s.h.i.t gibi harf harf yazılmış küfürleri birleştirir."""
     def birlestir(m):
         harfler = re.findall(r"[a-z]", m.group(0))
-        for uzunluk in range(len(harfler), 2, -1):             # "a f u c k" içinde "fuck"u bul
-            for bas in range(len(harfler) - uzunluk + 1):
-                aday = "".join(harfler[bas:bas + uzunluk])
-                if aday in ASIL:
-                    bulunanlar.append(f"{m.group(0)}→{ASIL[aday]}")
-                    once, sonra = harfler[:bas], harfler[bas + uzunluk:]
-                    return " ".join(once + [ASIL[aday]] + sonra)
-        return m.group(0)
+        bulunan = aralikli_kufur("".join(harfler))             # "a f u c k" içinde "fuck"u bul
+        if not bulunan:
+            return m.group(0)
+        bas, uzunluk = bulunan
+        aday = "".join(harfler[bas:bas + uzunluk])
+        bulunanlar.append(f"{m.group(0)}→{ASIL[aday]}")
+        return " ".join(harfler[:bas] + [ASIL[aday]] + harfler[bas + uzunluk:])
     return re.sub(r"(?<![a-z])(?:[a-z][ .\-_*]{1,2}){2,}[a-z](?![a-z])", birlestir, t)
 
 
@@ -132,7 +165,11 @@ def temizle_ayrintili(metin):
     t = re.sub(r"\\+'", "'", t)                           # don\'t -> don't
     t = t.strip().strip('"')                              # Kaggle setindeki baş/son tırnaklar
     t = unicodedata.normalize("NFKC", t)                  # ｆｕｃｋ (geniş harfler) -> fuck
-    t = EMOJI.sub(" ", t)                                 # emojiler silinir
+    for e, kelime in EMOJI_KUFUR.items():                 # 🖕 -> fuck (gizli küfür)
+        if e in t:
+            bulunanlar.append(f"{e}→{kelime}")
+            t = t.replace(e, f" {kelime} ")
+    t = EMOJI.sub(" ", t)                                 # kalan emojiler silinir
     t = t.lower()                                         # IDIOT -> idiot
     t = _harfleri_duzelt(t, bulunanlar)                   # аss (Kiril), fu​ck (görünmez), fück -> fuck
     t = re.sub(r"^rt\b", " ", t)                          # baştaki RT (retweet işareti)

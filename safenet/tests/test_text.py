@@ -1,6 +1,7 @@
 """safenet/pipeline: game words in context, spam, listed phrases written out, what the models read."""
 import pytest
 
+import temizlik
 from safenet.pipeline import profanity, text as tx
 
 
@@ -55,3 +56,25 @@ def test_phrases_with_a_listed_word_are_found_through_the_word():
 ])
 def test_models_do_not_read_words_that_carry_a_slur(clean, read):
     assert tx.for_models(clean) == read
+
+
+@pytest.mark.parametrize("message, words", [
+    ("f u c k you", ["fuck"]),
+    ("a f u c k", ["fuck"]),                 # a short word in front
+    ("s h i t s", ["shits"]),
+    ("go to h e l l", ["hell"]),
+    ("h e l l o everyone", []),              # "hell" + "o" is hello
+    ("c l a s s starts now", []),            # "cl" + "ass"
+    ("a s s i g n m e n t", []),
+])
+def test_spaced_letters_only_when_the_rest_are_words(message, words):
+    assert [h.word for h in profanity.find(message)] == words
+    assert all(w in temizlik.temizle(message) for w in words)
+
+
+@pytest.mark.parametrize("message, n", [("🖕", 1), ("you 🖕🏽", 1), ("🖕🖕🖕", 1), ("you are a 💩", 0)])
+def test_listed_emoji(message, n):
+    hits = profanity.find(message)
+    assert len(hits) == n and all(h.word == "fuck" and h.hidden for h in hits)
+    if n:
+        assert profanity.word_count(message, hits) == len(message.split())

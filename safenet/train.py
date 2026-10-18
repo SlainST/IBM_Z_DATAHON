@@ -307,6 +307,13 @@ def main():
     print(f"Done in {report['minutes']} min. Report: {target}")
 
 
+def save(folder: Path, model1, model2, info: dict):
+    folder.mkdir(exist_ok=True)
+    joblib.dump(model1, folder / "model1.joblib", compress=3)
+    joblib.dump(model2, folder / "model2.joblib", compress=3)
+    (folder / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
+
+
 def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     """Steps 2-5: choose C on validation, propose thresholds, fit and save the final pair."""
     synthetic = pd.DataFrame(columns=[TEXT, HARMFUL, "category"])
@@ -360,14 +367,15 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     print(f"5) Final models on the whole training split (Model 1 C={c1}, Model 2 C={c2})")
     model1 = fit_final(train1, HARMFUL, row_weights, c1, bits=20)
     model2 = fit_final(train_fit[train_fit[HARMFUL] == 1], "category", category_weights, c2, bits=19)
-    joblib.dump(model1, out_dir / "model1.joblib", compress=3)
-    joblib.dump(model2, out_dir / "model2.joblib", compress=3)
     info = {"trained": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "machine": platform.machine(), "byteorder": sys.byteorder,
             "python": platform.python_version(), "sklearn": sklearn.__version__, "numpy": np.__version__,
             "model1": {"C": c1, "bits": 20, "soft_labels": soft, "graded_between": list(GRADED_BETWEEN)},
             "model2": {"C": c2, "bits": 19},
             "training_messages": len(train_fit), "synthetic": report.get("augmentation", {}).get("per_kind", {})}
-    (out_dir / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
+    save(out_dir, model1, model2, info)
+    # The pair that never saw the validation split: measure.py --dev tunes rules and thresholds on it
+    save(out_dir.with_name(out_dir.name + "_dev"), model1_valid, model2_valid,
+         {**info, "training_messages": len(inner_fit), "dev": "fit on the inner split; validation is held out"})
     report["files_mb"] = {f.name: round(f.stat().st_size / 1e6, 1)
                           for f in (out_dir / "model1.joblib", out_dir / "model2.joblib")}
     print(f"   saved {report['files_mb']} MB and model_info.json -> {out_dir}")

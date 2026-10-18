@@ -1,9 +1,13 @@
 """Değerlendirme seti: her mesajın her demo platformunda beklenen kararını API'nin verdiği kararla karşılaştırır.
 
 Kullanım (safenet klasöründen):
-    python degerlendir.py                  # özet: platform ve tür başına isabet, beklenen/gelen tablosu
+    python degerlendir.py                  # dev bölümü: platform ve tür başına isabet, beklenen/gelen tablosu
     python degerlendir.py --hatalar        # tutmayan her satır
     python degerlendir.py --csv sonuc.csv  # satır satır sonuç (Geliştirici 1 kalibrasyon için)
+    python degerlendir.py --bolum test     # ayrılmış test bölümü: ayar bittikten sonra, bir kez
+
+Set iki bölüme ayrılır (bolumler()): kurallar ve eşikler yalnız dev'e bakılarak ayarlanır, test bölümü en sonda
+bir kez ölçülür. Ayrım sabit tohumlu: aynı id her zaman aynı bölümdedir, yeni satır eklemek eskileri taşımaz.
 
 Her mesaj her platformda YENİ bir gönderenle, birebir sohbette denenir (geçmiş puan yok). Bellek deposu
 kullanılır: sunucuya ve Postgres'e dokunmaz. models/ klasöründe model yoksa yedek kurallar cevap verir.
@@ -25,6 +29,7 @@ degerlendirme_seti.csv sütunları (sadece İngilizce mesajlar):
 """
 import argparse
 import csv
+import hashlib
 import uuid
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -35,11 +40,39 @@ from safenet.state.store import MemoryStore
 DOSYA = Path(__file__).with_name("degerlendirme_seti.csv")
 PLATFORMLAR = ("demo_sosyal", "demo_okul", "demo_oyun")
 KARARLAR = ("allow", "censor", "hold", "block")
+TOHUM = "safenet-degerlendirme-2026"   # değiştirmeyin: test bölümü bilinmeyen kalmalı
+DEV_PAYI = 0.6
+BOLUMLER = ("dev", "test", "hepsi")
 
 
 def oku(dosya=DOSYA):
     with open(dosya, encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
+
+
+def _sira(id_):
+    return hashlib.md5(f"{TOHUM}|{id_}".encode()).hexdigest()
+
+
+def bolumler(satirlar):
+    """id -> "dev" / "test". Her türün satırları tohumlu md5 sırasına dizilir ve ilk %60'ı (en az biri) dev olur:
+    her tür iki bölümde de bulunur, tek satırlık türler dev'dedir."""
+    turler = defaultdict(list)
+    for s in satirlar:
+        turler[s["tur"]].append(s["id"])
+    out = {}
+    for ids in turler.values():
+        ids = sorted(ids, key=_sira)
+        n_dev = max(1, round(DEV_PAYI * len(ids)))
+        out.update({i: "dev" if k < n_dev else "test" for k, i in enumerate(ids)})
+    return out
+
+
+def sec(satirlar, bolum="dev"):
+    if bolum == "hepsi":
+        return satirlar
+    b = bolumler(satirlar)
+    return [s for s in satirlar if b[s["id"]] == bolum]
 
 
 def calistir(satirlar, mod):
@@ -103,12 +136,15 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--hatalar", action="store_true", help="tutmayan her satırı yaz")
     ap.add_argument("--csv", type=Path, help="satır satır sonucu bu dosyaya yaz")
+    ap.add_argument("--bolum", choices=BOLUMLER, default="dev",
+                    help="dev (ayar için, varsayılan), test (ayrılmış, en sonda bir kez) veya hepsi")
     args = ap.parse_args()
 
     depo = MemoryStore()
     depo.open()
     mod = Moderator(depo)
-    sonuclar = calistir(oku(), mod)
+    sonuclar = calistir(sec(oku(), args.bolum), mod)
+    print(f"Bölüm: {args.bolum}")
     ozet(sonuclar, mod.models.status())
     if args.hatalar:
         hatalar(sonuclar)

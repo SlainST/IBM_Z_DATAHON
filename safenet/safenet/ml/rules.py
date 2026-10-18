@@ -80,6 +80,9 @@ THREAT = [
 ]
 SELF_HARM = [
     r"\b(kys|kill (your|ur) ?self|kill urself|hang (your|ur) ?self|end (your|ur) life|slit (your|ur) wrists?)\b",
+    # the words children use to get past filters: "unalive yourself", "neck yourself", "go drink bleach"
+    r"\b(unalive|neck) (your|ur) ?self\b|\b(unalive|neck) urself\b",
+    r"\b(go|just|pls|please|you should|u should)\s+(drink|chug)\s+(some\s+)?bleach\b",
     r"\b(you|u)\s+(should|need to|deserve to|ought to)\s+(just\s+)?(die|be dead)\b",
 ]
 BLACKMAIL = [
