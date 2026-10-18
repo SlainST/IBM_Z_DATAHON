@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SafeNet live demo</title>
+<style>
+  :root { --bg:#f4f6fb; --card:#fff; --ink:#1d2433; --muted:#6b7385; --line:#e3e7ef; --blue:#0f62fe;
+          --allow:#198038; --censor:#b28600; --hold:#8a3ffc; --block:#da1e28; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.45 "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:#161616; color:#fff; padding:14px 22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:20px; margin:0; font-weight:600; }
+  header h1 span { color:#78a9ff; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+  .chip { background:#262626; border:1px solid #393939; color:#c6c6c6; border-radius:12px; padding:2px 10px; font-size:12px; }
+  .chip.ok { color:#42be65; border-color:#24a148; }
+  .bar { display:flex; gap:10px; align-items:center; padding:12px 22px; background:#fff; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .tabs button, .btn { border:1px solid var(--line); background:#fff; padding:7px 14px; border-radius:6px; cursor:pointer; font:inherit; }
+  .tabs button.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .btn.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .hint { color:var(--muted); font-size:13px; }
+  main { display:grid; grid-template-columns: 330px 1fr 320px; gap:16px; padding:16px 22px; align-items:start; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px; }
+  textarea { width:100%; min-height:84px; border:1px solid var(--line); border-radius:8px; padding:10px; font:inherit; resize:vertical; }
+  .examples { display:flex; flex-direction:column; gap:6px; margin-top:12px; max-height:52vh; overflow:auto; }
+  .examples button { text-align:left; border:1px solid var(--line); background:#f8f9fc; border-radius:8px; padding:6px 9px; cursor:pointer; font:inherit; font-size:13px; }
+  .examples button small { color:var(--muted); display:block; font-size:11px; }
+  #feed { display:flex; flex-direction:column; gap:12px; }
+  .empty { color:var(--muted); text-align:center; padding:40px 0; }
+  .msg { background:var(--card); border:1px solid var(--line); border-left:6px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .msg.allow { border-left-color:var(--allow); } .msg.censor { border-left-color:var(--censor); }
+  .msg.hold { border-left-color:var(--hold); } .msg.block { border-left-color:var(--block); }
+  .from { color:var(--muted); font-size:13px; }
+  .sees { font-size:17px; margin:6px 0 8px; }
+  .sees.blocked { color:var(--block); font-weight:600; } .sees.held { color:var(--hold); font-weight:600; }
+  .badge { color:#fff; border-radius:4px; padding:1px 8px; font-size:12px; font-weight:700; letter-spacing:.04em; }
+  .badge.allow { background:var(--allow); } .badge.censor { background:var(--censor); } .badge.hold { background:var(--hold); } .badge.block { background:var(--block); }
+  .meta { font-size:13px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .kw { display:inline-block; background:#eef2ff; color:#3046a0; border-radius:10px; padding:0 8px; margin:4px 4px 0 0; font-size:12px; }
+  .note { margin-top:6px; font-size:13px; font-weight:600; }
+  .note.warn { color:var(--censor); } .note.stop { color:var(--block); }
+  .meter { margin:6px 0 16px; }
+  .meter .track { position:relative; height:14px; background:#eef0f5; border-radius:7px; overflow:hidden; }
+  .meter .fill { height:100%; width:0; background:var(--allow); transition:width .4s, background .4s; }
+  .meter .mark { position:absolute; top:-3px; bottom:-3px; width:2px; background:#161616; opacity:.55; }
+  .meter .legend { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:3px; }
+  .big { font-size:26px; font-weight:600; }
+  .level { font-weight:600; } .level.warned { color:var(--censor); } .level.restricted { color:var(--block); }
+  .small { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>SafeNet <span>· what the recipient sees</span></h1>
+  <div class="chips" id="machine"><span class="chip">connecting to IBM LinuxONE…</span></div>
+</header>
+<div class="bar">
+  <div class="tabs" id="tabs">
+    <button data-p="demo_sosyal" class="on">Social app</button>
+    <button data-p="demo_okul">School app</button>
+    <button data-p="demo_oyun">Game chat</button>
+  </div>
+  <button class="btn" id="new">New conversation</button>
+  <span class="hint" id="who"></span>
+</div>
+<main>
+  <section class="panel">
+    <h2>Ali writes to Ayşe</h2>
+    <textarea id="text" placeholder="Type a message (English) and press Send"></textarea>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn primary" id="send">Send</button>
+      <span class="hint" id="status"></span>
+    </div>
+    <div class="examples" id="examples"></div>
+  </section>
+  <section>
+    <div id="feed"><div class="empty">Every message goes through the live SafeNet API before Ayşe sees it.</div></div>
+  </section>
+  <section class="panel">
+    <h2>What the platform sees</h2>
+    <div class="small">Ali's hidden points in this group</div>
+    <div class="big" id="points">0</div>
+    <div class="level" id="level">normal</div>
+    <div class="meter"><div class="track"><div class="fill" id="pfill"></div><div class="mark" id="mwarn"></div><div class="mark" id="mstop"></div></div>
+      <div class="legend"><span>0</span><span id="lwarn">warn</span><span id="lstop">restrict</span></div></div>
+    <div class="small">Ali → Ayşe (only what Ali sent to Ayşe)</div>
+    <div class="meter"><div class="track"><div class="fill" id="rfill"></div><div class="mark" id="mrel"></div></div>
+      <div class="legend"><span id="rpoints">0</span><span id="lrel">Ayşe stops receiving</span></div></div>
+    <div class="small" id="rules"></div>
+  </section>
+</main>
+<script>
+const EXAMPLES = [
+  ["see you tomorrow at practice", "ordinary message"],
+  ["f*ck, I missed the bus again", "swearing at nobody: starred, no harm"],
+  ["I fed the fuck at the lake", "a likely typo for 'duck'"],
+  ["I'm a proud Muslim and I fast during Ramadan", "an identity named, not attacked"],
+  ["some kids keep calling me fat and ugly", "a victim asking for help"],
+  ["you are an idiot", "an insult"],
+  ["f u c k you, you l0ser", "disguised profanity"],
+  ["He told me \"I will kill you tomorrow\".", "a reported threat"],
+  ["nobody likes you, just leave the group chat", "bullying without a swear word"],
+  ["send me a pic of you in your underwear", "a sexual request"],
+  ["go back to your country", "xenophobia"],
+  ["you are going to regret coming to school tomorrow", "an implicit threat"],
+  ["Great match yesterday Mark. But if you show up on Friday I'll f*cking break your legs.", "the design's example"],
+  ["gg, I will kill you next round", "game talk (try it on Game chat)"],
+  ["see you tomorrow, i hope you are feeling better", "a friendly message after the attacks"],
+];
+const SEES = { hold: "⏳ Held: a moderator looks first", block: "⛔ Not delivered" };
+const REASON = { threat:"threat", hate:"identity attack", very_harmful:"very harmful", profanity_ratio:"mostly profanity",
+  spam:"spam", quoted_threat:"reported threat", harmful:"harmful", profanity:"profanity only",
+  sender_restricted:"Ali is restricted", relation_blocked:"Ayşe no longer receives Ali's messages" };
+let platform = "demo_sosyal", settings = {};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  if (!r.ok) throw new Error((await r.json()).error || r.status);
+  return r.json();
+}
+async function machine() {
+  try {
+    const h = await api("/api/health"), v = h.model_version || {};
+    $("machine").innerHTML = [`${h.arch} · IBM ${h.generation || "Z"}`, h.nnpa ? "NNPA" : "", `${h.workers} workers`,
+      v.trained ? `models trained ${v.trained.slice(0,10)} on ${v.machine}` : `models ${h.models.model1}`, h.store.kind]
+      .filter(Boolean).map(t => `<span class="chip ok">${esc(t)}</span>`).join("");
+  } catch (e) { $("machine").innerHTML = `<span class="chip">SafeNet not reachable: ${esc(e.message)}</span>`; }
+}
+async function loadSettings() {
+  if (!settings[platform]) settings[platform] = await api(`/api/settings/${platform}`);
+  const s = settings[platform], g = s.gizli_puan, m = s.mesaj;
+  $("rules").innerHTML = `${esc(s.ad || platform)}: yellow from ${m.sari_esigi}, ` +
+    `yellow is ${m.sari_davranis === "beklet" ? "held" : "delivered starred"}; warn at ${g.uyari_esigi}, restrict at ${g.susturma_esigi} points.`;
+}
+function meter(fill, value, max, marks) {
+  const top = Math.max(max * 1.15, value);
+  $(fill).style.width = Math.min(100, 100 * value / top) + "%";
+  $(fill).style.background = value >= max ? "var(--block)" : value >= (marks[0] || max) * 0.999 ? "var(--censor)" : "var(--allow)";
+  return top;
+}
+function standing(r) {
+  const s = settings[platform], g = s.gizli_puan, rel = s.iliski.engel_esigi;
+  const u = r && r.user_view, rv = r && r.relation_view;
+  const pts = u ? u.points : 0, rp = rv ? rv.points : 0;
+  $("points").textContent = pts.toFixed(0);
+  const lvl = u ? u.level : "normal";
+  $("level").textContent = lvl === "restricted" ? `restricted until ${new Date(u.restricted_until).toLocaleTimeString()}` : lvl;
+  $("level").className = "level " + lvl;
+  const top = meter("pfill", pts, g.susturma_esigi, [g.uyari_esigi]);
+  $("mwarn").style.left = (100 * g.uyari_esigi / top) + "%"; $("mstop").style.left = (100 * g.susturma_esigi / top) + "%";
+  $("lwarn").textContent = `warn ${g.uyari_esigi}`; $("lstop").textContent = `restrict ${g.susturma_esigi}`;
+  const rtop = meter("rfill", rp, rel, [rel]);
+  $("mrel").style.left = (100 * rel / rtop) + "%";
+  $("rpoints").textContent = `${rp.toFixed(0)} points`; $("lrel").textContent = `Ayşe stops receiving at ${rel}`;
+}
+function card(text, r) {
+  const d = r.decision, sees = SEES[d] || esc(r.recipient_sees);
+  const notes = [];
+  if (r.suggested_action === "warn_sender") notes.push(["warn", "→ the platform should warn Ali"]);
+  if (r.suggested_action === "restrict_sender") notes.push(["stop", "→ Ali is restricted: no messages delivered to anyone for a while"]);
+  if (r.relation && r.relation.blocked) notes.push(["stop", "→ Ayşe no longer receives Ali's messages (others still do)"]);
+  if ((r.possible_typos || []).length) notes.push(["warn", `→ did you mean "${esc(r.possible_typos[0].suggestion)}"? no points`]);
+  const el = document.createElement("div");
+  el.className = "msg " + d;
+  el.innerHTML = `<div class="from"><b>Ali</b> wrote: ${esc(text)}</div>
+    <div class="sees ${d === "block" ? "blocked" : d === "hold" ? "held" : ""}"><b>Ayşe sees:</b> ${sees}</div>
+    <div class="meta"><span class="badge ${d}">${d.toUpperCase()}</span>
+      ${r.reason ? `<span>${esc(REASON[r.reason] || r.reason)}</span>` : ""}
+      ${r.category ? `<span>category: <b>${esc(r.category)}</b></span>` : ""}
+      <span>harm ${Number(r.harm ?? 0).toFixed(2)}</span>
+      <span>${r.sender_standing ? (r.sender_standing.change >= 0 ? "+" : "") + r.sender_standing.change + " points" : ""}</span>
+      <span>${r.latency_ms != null ? r.latency_ms.toFixed(1) + " ms on LinuxONE" : ""}</span></div>
+    <div>${(r.key_words || []).map(w => `<span class="kw">${esc(w)}</span>`).join("")}</div>
+    ${notes.map(([c, t]) => `<div class="note ${c}">${t}</div>`).join("")}`;
+  const feed = $("feed");
+  if (feed.querySelector(".empty")) feed.innerHTML = "";
+  feed.prepend(el);
+}
+async function send(text) {
+  text = (text ?? $("text").value).trim();
+  if (!text) return;
+  $("status").textContent = "checking…";
+  try {
+    await loadSettings();
+    const r = await api("/api/check", {platform, text});
+    card(text, r); standing(r); $("text").value = ""; $("status").textContent = "";
+  } catch (e) { $("status").textContent = "error: " + e.message; }
+}
+async function fresh() {
+  const ids = await api("/api/new", {});
+  $("feed").innerHTML = '<div class="empty">New conversation: Ali and Ayşe start with 0 points.</div>';
+  $("who").textContent = `users ${ids.sender} → ${ids.recipient}, group "video"`;
+  await loadSettings(); standing(null);
+}
+$("examples").innerHTML = EXAMPLES.map(([t, w], i) => `<button data-i="${i}">${esc(t)}<small>${esc(w)}</small></button>`).join("");
+$("examples").onclick = e => { const b = e.target.closest("button"); if (b) send(EXAMPLES[b.dataset.i][0]); };
+$("send").onclick = () => send();
+$("text").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+$("new").onclick = fresh;
+$("tabs").onclick = async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  platform = b.dataset.p; await fresh();
+};
+machine(); fresh();
+</script>
+</body>
+</html>
