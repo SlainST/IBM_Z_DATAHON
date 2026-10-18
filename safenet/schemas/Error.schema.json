@@ -1,0 +1,22 @@
+{
+  "properties": {
+    "detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {},
+          "type": "array"
+        }
+      ],
+      "description": "what was wrong; for 422 one entry per field",
+      "title": "Detail"
+    }
+  },
+  "required": [
+    "detail"
+  ],
+  "title": "Error",
+  "type": "object"
+}

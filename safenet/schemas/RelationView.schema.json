@@ -1,0 +1,48 @@
+{
+  "properties": {
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "sender": {
+      "title": "Sender",
+      "type": "string"
+    },
+    "recipient": {
+      "title": "Recipient",
+      "type": "string"
+    },
+    "points": {
+      "title": "Points",
+      "type": "number"
+    },
+    "blocked": {
+      "title": "Blocked",
+      "type": "boolean"
+    },
+    "recent_clean": {
+      "title": "Recent Clean",
+      "type": "integer"
+    },
+    "recent_messages": {
+      "title": "Recent Messages",
+      "type": "integer"
+    },
+    "messages": {
+      "title": "Messages",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "platform",
+    "sender",
+    "recipient",
+    "points",
+    "blocked",
+    "recent_clean",
+    "recent_messages",
+    "messages"
+  ],
+  "title": "RelationView",
+  "type": "object"
+}

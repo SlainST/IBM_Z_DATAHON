@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "GroupRow": {
+      "properties": {
+        "group": {
+          "title": "Group",
+          "type": "string"
+        },
+        "messages": {
+          "title": "Messages",
+          "type": "integer"
+        },
+        "harmful": {
+          "title": "Harmful",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "group",
+        "messages",
+        "harmful"
+      ],
+      "title": "GroupRow",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "groups": {
+      "items": {
+        "$ref": "#/$defs/GroupRow"
+      },
+      "title": "Groups",
+      "type": "array"
+    }
+  },
+  "required": [
+    "platform",
+    "groups"
+  ],
+  "title": "Groups",
+  "type": "object"
+}

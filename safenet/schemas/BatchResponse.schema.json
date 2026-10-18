@@ -1,0 +1,365 @@
+{
+  "$defs": {
+    "CheckResponse": {
+      "properties": {
+        "key": {
+          "description": "\"platform/group/sender\": the row whose points changed",
+          "title": "Key",
+          "type": "string"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "group": {
+          "title": "Group",
+          "type": "string"
+        },
+        "sender": {
+          "title": "Sender",
+          "type": "string"
+        },
+        "recipient": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recipient"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Message Id"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "censor",
+            "hold",
+            "block"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "recipient_sees": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "the text for allow, the starred text for censor, null otherwise",
+          "title": "Recipient Sees"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "threat",
+                "hate",
+                "very_harmful",
+                "profanity_ratio",
+                "spam",
+                "quoted_threat",
+                "harmful",
+                "profanity",
+                "sender_restricted",
+                "relation_blocked"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "worst_sentence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "the sentence that decided, starred; null when allowed",
+          "title": "Worst Sentence"
+        },
+        "harm": {
+          "description": "harm score of the worst sentence",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Harm",
+          "type": "number"
+        },
+        "wordless_harm": {
+          "description": "the same sentence without its listed words",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Wordless Harm",
+          "type": "number"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "enum": [
+                "insult",
+                "gender",
+                "religion",
+                "race",
+                "sexual",
+                "threat"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "only for yellow and red messages",
+          "title": "Category"
+        },
+        "key_words": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Key Words",
+          "type": "array"
+        },
+        "censored": {
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "title": "Censored",
+          "type": "array"
+        },
+        "hidden_profanity": {
+          "items": {
+            "$ref": "#/$defs/HiddenWord"
+          },
+          "title": "Hidden Profanity",
+          "type": "array"
+        },
+        "possible_typos": {
+          "items": {
+            "$ref": "#/$defs/PossibleTypo"
+          },
+          "title": "Possible Typos",
+          "type": "array"
+        },
+        "sender_standing": {
+          "$ref": "#/$defs/SenderStanding"
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationStanding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null without recipient_id"
+        },
+        "suggested_action": {
+          "anyOf": [
+            {
+              "enum": [
+                "warn_sender",
+                "restrict_sender"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Suggested Action"
+        },
+        "replayed": {
+          "description": "this message_id was answered before: the stored decision, nothing counted",
+          "title": "Replayed",
+          "type": "boolean"
+        },
+        "latency_ms": {
+          "title": "Latency Ms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "key",
+        "platform",
+        "group",
+        "sender",
+        "recipient",
+        "message_id",
+        "decision",
+        "recipient_sees",
+        "reason",
+        "worst_sentence",
+        "harm",
+        "wordless_harm",
+        "category",
+        "key_words",
+        "censored",
+        "hidden_profanity",
+        "possible_typos",
+        "sender_standing",
+        "relation",
+        "suggested_action",
+        "replayed",
+        "latency_ms"
+      ],
+      "title": "CheckResponse",
+      "type": "object"
+    },
+    "HiddenWord": {
+      "properties": {
+        "written": {
+          "description": "as written: \"f*cking\", \"sh1t\", \"f u c k\"",
+          "title": "Written",
+          "type": "string"
+        },
+        "word": {
+          "description": "the listed word it stands for",
+          "title": "Word",
+          "type": "string"
+        }
+      },
+      "required": [
+        "written",
+        "word"
+      ],
+      "title": "HiddenWord",
+      "type": "object"
+    },
+    "PossibleTypo": {
+      "properties": {
+        "word": {
+          "description": "the listed word found",
+          "title": "Word",
+          "type": "string"
+        },
+        "suggestion": {
+          "description": "the innocent word probably meant: \"duck\"",
+          "title": "Suggestion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "word",
+        "suggestion"
+      ],
+      "title": "PossibleTypo",
+      "type": "object"
+    },
+    "RelationStanding": {
+      "properties": {
+        "blocked": {
+          "description": "this sender's messages no longer reach this recipient",
+          "title": "Blocked",
+          "type": "boolean"
+        },
+        "change": {
+          "title": "Change",
+          "type": "number"
+        }
+      },
+      "required": [
+        "blocked",
+        "change"
+      ],
+      "title": "RelationStanding",
+      "type": "object"
+    },
+    "SenderStanding": {
+      "properties": {
+        "level": {
+          "enum": [
+            "normal",
+            "warned",
+            "restricted"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "change": {
+          "description": "what this message did to the hidden points; negative when a clean message lowered them",
+          "title": "Change",
+          "type": "number"
+        },
+        "restrictions": {
+          "description": "how many times this sender has been restricted in this group",
+          "title": "Restrictions",
+          "type": "integer"
+        },
+        "restricted_until": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ISO 8601, while the sender is restricted",
+          "title": "Restricted Until"
+        }
+      },
+      "required": [
+        "level",
+        "change",
+        "restrictions",
+        "restricted_until"
+      ],
+      "title": "SenderStanding",
+      "type": "object"
+    },
+    "Span": {
+      "properties": {
+        "start": {
+          "description": "index in `text` of the first starred character (Python string index)",
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Span",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "results": {
+      "items": {
+        "$ref": "#/$defs/CheckResponse"
+      },
+      "title": "Results",
+      "type": "array"
+    }
+  },
+  "required": [
+    "results"
+  ],
+  "title": "BatchResponse",
+  "type": "object"
+}

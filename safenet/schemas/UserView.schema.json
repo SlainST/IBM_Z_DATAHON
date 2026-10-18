@@ -1,0 +1,60 @@
+{
+  "properties": {
+    "key": {
+      "title": "Key",
+      "type": "string"
+    },
+    "points": {
+      "title": "Points",
+      "type": "number"
+    },
+    "level": {
+      "enum": [
+        "normal",
+        "warned",
+        "restricted"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "recent_clean": {
+      "title": "Recent Clean",
+      "type": "integer"
+    },
+    "recent_messages": {
+      "title": "Recent Messages",
+      "type": "integer"
+    },
+    "restrictions": {
+      "title": "Restrictions",
+      "type": "integer"
+    },
+    "restricted_until": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Restricted Until"
+    },
+    "messages": {
+      "title": "Messages",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "key",
+    "points",
+    "level",
+    "recent_clean",
+    "recent_messages",
+    "restrictions",
+    "restricted_until",
+    "messages"
+  ],
+  "title": "UserView",
+  "type": "object"
+}

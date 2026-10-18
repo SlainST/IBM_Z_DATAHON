@@ -1,12 +1,18 @@
-"""HTTP layer: keys, validation, every endpoint (memory store, dev keys)."""
+"""HTTP layer: keys, validation, every endpoint (memory store, dev keys), and the documented schemas."""
+import pytest
+
+from safenet.api import schemas
+
 KEY = {"X-API-Key": "dev-demo_sosyal"}
+SCHOOL = {"X-API-Key": "dev-demo_okul"}
+PDF_TEXT = "Great match yesterday Mark. But if you show up on Friday I'll f*cking break your legs."
 
 
 def test_health_needs_no_key(client):
     r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
-    assert {"arch", "machine_type", "nnpa", "pid", "models", "store"} <= body.keys()
+    assert {"arch", "machine_type", "nnpa", "pid", "models", "model_version", "store"} <= body.keys()
     assert body["store"] == {"kind": "memory", "writable": True}
 
 
@@ -54,3 +60,37 @@ def test_moderator_endpoints(client):
     assert any(g["group"] == "7b" for g in client.get("/v1/groups?limit=10", headers=KEY).json()["groups"])
     assert client.get("/v1/settings", headers=KEY).json()["secim"]["profil"] == "sosyal_medya"
     assert client.get("/metrics").json()["messages"] >= 1
+
+
+@pytest.mark.parametrize("text", ["see you tomorrow", "f*ck, I missed the bus", "you are an idiot", PDF_TEXT,
+                                  'He told me "I will kill you tomorrow".', "I fed the fuck at the lake",
+                                  "you dirty muslim"])
+def test_every_kind_of_answer_matches_the_schema(client, text):
+    for key in (KEY, SCHOOL):
+        body = {"sender_id": "schema_a", "recipient_id": "schema_b", "group_id": "g", "message_id": f"m_{text[:9]}",
+                "text": text}
+        first, again = (client.post("/v1/check", headers=key, json=body).json() for _ in range(2))
+        schemas.CheckResponse.model_validate(first)
+        schemas.CheckResponse.model_validate(again)
+        assert again["replayed"] and again["decision"] == first["decision"]
+
+
+def test_reads_match_the_schema(client):
+    client.post("/v1/check", headers=KEY, json={"sender_id": "r1", "recipient_id": "r2", "group_id": "7c",
+                                                 "text": "you are an idiot"})
+    schemas.BatchResponse.model_validate(client.post("/v1/check/batch", headers=KEY, json={"messages": [
+        {"sender_id": "r1", "text": "hi"}, {"sender_id": "r1", "recipient_id": "r3", "text": "shut up"}]}).json())
+    schemas.UserView.model_validate(client.get("/v1/groups/7c/users/r1", headers=KEY).json())
+    schemas.RelationView.model_validate(client.get("/v1/relations/r1/r2", headers=KEY).json())
+    schemas.Stats.model_validate(client.get("/v1/stats", headers=KEY).json())
+    schemas.Stats.model_validate(client.get("/v1/groups/7c/stats", headers=KEY).json())
+    schemas.Groups.model_validate(client.get("/v1/groups", headers=KEY).json())
+    schemas.Error.model_validate(client.post("/v1/check", json={"sender_id": "x", "text": "hi"}).json())
+
+
+def test_schema_files_are_up_to_date():
+    """schemas/*.schema.json are what scripts/export_schemas.py writes from safenet/api/schemas.py."""
+    from scripts import export_schemas
+    for model in export_schemas.MODELS:
+        path = export_schemas.ROOT / "schemas" / f"{model.__name__}.schema.json"
+        assert path.read_text(encoding="utf-8") == export_schemas.rendered(model), f"run scripts/export_schemas.py"

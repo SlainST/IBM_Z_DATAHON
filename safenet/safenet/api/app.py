@@ -14,10 +14,14 @@ from ..engine import points as pts
 from ..engine.moderator import Moderator
 from ..state.store import StoreUnavailable, make_store, utcnow
 from .auth import KEYS, require_platform
-from .schemas import BatchRequest, CheckRequest
+from .schemas import (BatchRequest, BatchResponse, CheckRequest, CheckResponse, Error, Groups, RelationView, Stats,
+                      UserView)
 
 log = logging.getLogger("safenet")
 BUCKETS_MS = (0.5, 1, 2, 5, 10, 25, 50, 100, 250, 1000)
+KEYED = {401: {"model": Error, "description": "X-API-Key missing or unknown"},
+         403: {"model": Error, "description": "the key's platform has no [platform.<id>] block in ayarlar.toml"}}
+WRITES = {**KEYED, 503: {"model": Error, "description": "points store unavailable: retry with the same message_id"}}
 
 
 class Metrics:
@@ -80,23 +84,23 @@ def _check(platform: str, req: CheckRequest) -> dict:
     return answer
 
 
-@app.post("/v1/check")
+@app.post("/v1/check", responses={200: {"model": CheckResponse}, **WRITES})
 def check(req: CheckRequest, platform: str = Depends(require_platform)) -> dict:
     return _check(platform, req)
 
 
-@app.post("/v1/check/batch")
+@app.post("/v1/check/batch", responses={200: {"model": BatchResponse}, **WRITES})
 def check_batch(req: BatchRequest, platform: str = Depends(require_platform)) -> dict:
     return {"results": [_check(platform, m) for m in req.messages]}
 
 
-@app.get("/v1/groups/{group}/users/{user}")
+@app.get("/v1/groups/{group}/users/{user}", responses={200: {"model": UserView}, **KEYED})
 def user_points(group: str, user: str, platform: str = Depends(require_platform)) -> dict:
     a = settings.for_platform(platform)
     return {"key": f"{platform}/{group}/{user}", **pts.public(state["store"].user(platform, group, user), a, utcnow())}
 
 
-@app.get("/v1/relations/{sender}/{recipient}")
+@app.get("/v1/relations/{sender}/{recipient}", responses={200: {"model": RelationView}, **KEYED})
 def relation(sender: str, recipient: str, platform: str = Depends(require_platform)) -> dict:
     a = settings.for_platform(platform)
     r = state["store"].relation(platform, sender, recipient)
@@ -106,22 +110,22 @@ def relation(sender: str, recipient: str, platform: str = Depends(require_platfo
             "recent_messages": out["recent_messages"], "messages": out["messages"]}
 
 
-@app.get("/v1/stats")
+@app.get("/v1/stats", responses={200: {"model": Stats}, **KEYED})
 def stats(platform: str = Depends(require_platform)) -> dict:
     return {"platform": platform, **state["store"].stats(platform)}
 
 
-@app.get("/v1/groups/{group}/stats")
+@app.get("/v1/groups/{group}/stats", responses={200: {"model": Stats}, **KEYED})
 def group_stats(group: str, platform: str = Depends(require_platform)) -> dict:
     return {"platform": platform, "group": group, **state["store"].stats(platform, group)}
 
 
-@app.get("/v1/groups")
+@app.get("/v1/groups", responses={200: {"model": Groups}, **KEYED})
 def groups(limit: int = Query(50, ge=1, le=500), platform: str = Depends(require_platform)) -> dict:
     return {"platform": platform, "groups": state["store"].groups(platform, limit)}
 
 
-@app.get("/v1/settings")
+@app.get("/v1/settings", responses=KEYED)
 def platform_settings(platform: str = Depends(require_platform)) -> dict:
     return {"platform": platform, **settings.public(platform)}
 
@@ -131,8 +135,10 @@ def health():
     store = state["store"]
     writable = store.writable()
     workers = os.getenv("SAFENET_WORKERS", "1")
+    models = state["moderator"].models
     body = {"status": "ok" if writable else "degraded", **ibmz.info(), "pid": os.getpid(),
-            "workers": int(workers) if workers.isdigit() else workers, "models": state["moderator"].models.status(),
+            "workers": int(workers) if workers.isdigit() else workers, "models": models.status(),
+            "model_version": models.version(),
             "store": {"kind": store.kind, "writable": writable}, "platforms": list(settings.platforms()),
             "api_keys": len(KEYS), "dev_keys": config.DEV_KEYS}
     return JSONResponse(body, status_code=200 if writable else 503)

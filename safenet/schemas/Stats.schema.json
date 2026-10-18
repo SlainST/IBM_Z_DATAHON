@@ -1,0 +1,84 @@
+{
+  "properties": {
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "group": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Group"
+    },
+    "messages": {
+      "title": "Messages",
+      "type": "integer"
+    },
+    "harmful": {
+      "title": "Harmful",
+      "type": "integer"
+    },
+    "harmful_rate": {
+      "title": "Harmful Rate",
+      "type": "number"
+    },
+    "decisions": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Decisions",
+      "type": "object"
+    },
+    "categories": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Categories",
+      "type": "object"
+    },
+    "reasons": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Reasons",
+      "type": "object"
+    },
+    "warnings": {
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "restrictions": {
+      "title": "Restrictions",
+      "type": "integer"
+    },
+    "replayed": {
+      "title": "Replayed",
+      "type": "integer"
+    },
+    "restricted_now": {
+      "title": "Restricted Now",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "platform",
+    "messages",
+    "harmful",
+    "harmful_rate",
+    "decisions",
+    "categories",
+    "reasons",
+    "warnings",
+    "restrictions",
+    "replayed",
+    "restricted_now"
+  ],
+  "title": "Stats",
+  "type": "object"
+}
