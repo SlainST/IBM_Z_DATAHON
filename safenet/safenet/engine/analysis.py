@@ -1,4 +1,8 @@
-"""PDF steps 2-7: everything about the text itself, before any points. Pure, so each worker caches it."""
+"""PDF steps 2-7: everything about the text itself, before any points. Pure, so each worker caches it.
+
+The cache holds offsets, scores and the listed words found, never the message: the starred text is made again
+from the request for each answer (moderator.py), so no message stays in memory (DECISION_ENGINE choice 16).
+"""
 import hashlib
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -38,8 +42,8 @@ class Analysis:
     sentences: list[Sentence]
     hits: list
     words: int
-    spam: bool
-    censored_text: str
+    links: int           # for the spam rule (decision.is_spam), whose numbers are the platform's settings
+    repeats: tuple       # (times, share of the words) of the most repeated word and phrases of 2-4 words
 
 
 def _remove(sentence: str, offset: int, hits) -> str:
@@ -164,5 +168,5 @@ class Analyzer:
             if worst.category == "insult" and worst.rule is None and not rules.identity_attack(worst.identity):
                 context = min(context, rules.INSULT_CAP)
             worst.context = context
-        return Analysis(sentences, hits, profanity.word_count(text, hits), tx.spam(text), profanity.star(text, hits))
+        return Analysis(sentences, hits, profanity.word_count(text, hits), tx.links(text), tx.repeats(text))
 

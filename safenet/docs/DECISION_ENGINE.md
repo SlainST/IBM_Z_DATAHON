@@ -155,7 +155,8 @@ code on 18 Oct. The evaluation set shows what each choice does to real messages:
     **Status: bekliyor.** Checked: the rule is in the code (`pipeline/text.py`, `spam()`), not in
     `ayarlar.toml`. A repeated phrase is not spam: in "follow me" × 8 each word is 50 % of the message.
     **On `fevzi/integration`:** a phrase of up to 4 words counts like a word: "follow me" × 8 is spam (8
-    repeats, 100 % of the words). The numbers are constants at the top of `pipeline/text.py`.
+    repeats, 100 % of the words). The numbers are settings now, as developer 2's branch proposed:
+    `spam_link_sayisi`, `spam_tekrar_sayisi`, `spam_tekrar_orani` in `ayarlar.toml` (`decision.is_spam`).
 11. **Model 2 runs only for sentences with harm or wordless harm ≥ 0.25**, and `category` is reported only
     for yellow and red, to keep the latency down.
     **Status: bekliyor.** Checked: matches the code.
@@ -176,4 +177,6 @@ code on 18 Oct. The evaluation set shows what each choice does to real messages:
     bits.
     **Status: bekliyor.** Checked: Postgres keeps no text, but the worker's cache also holds the starred text
     of up to `SAFENET_ANALYSIS_CACHE` (4,096) recent messages in memory (`censored_text` in
-    `engine/analysis.py`).
+    `engine/analysis.py`). **On `fevzi/integration`** (as developer 2's branch proposed): the cache keeps
+    offsets, scores, the listed words found and the spam counts, never the message; the starred text is made
+    again from the request for each answer (`engine/moderator.py`).

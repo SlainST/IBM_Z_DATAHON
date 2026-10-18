@@ -136,10 +136,7 @@ def quoted(text: str, span: Span, previous: Span | None) -> bool:
 
 
 _LINK = re.compile(r"https?://|www\.", re.I)
-SPAM_LINKS = 3          # this many links make a message spam
-SPAM_REPEATS = 8        # a word or phrase repeated at least this many times...
-SPAM_SHARE = 0.6        # ...making up more than this share of the words
-SPAM_PHRASE_WORDS = 4   # phrases of up to this many words ("follow me" x 8)
+SPAM_PHRASE_WORDS = 4   # phrases of up to this many words ("follow me" x 8); the other spam numbers are settings
 
 
 def _repeats(words: list[str], n: int) -> int:
@@ -154,16 +151,23 @@ def _repeats(words: list[str], n: int) -> int:
     return count
 
 
-def spam(text: str) -> bool:
-    """3 or more links, or one word or phrase of up to 4 words repeated at least 8 times and making up more
-    than 60 % of the words: "lol" x 10, "follow me" x 8."""
-    if len(_LINK.findall(text)) >= SPAM_LINKS:
-        return True
+def links(text: str) -> int:
+    return len(_LINK.findall(text))
+
+
+def repeats(text: str) -> tuple[tuple[int, float], ...]:
+    """(times, share of the words) of the most repeated word and phrase of up to SPAM_PHRASE_WORDS words, counted
+    without overlapping: what the spam rule needs (decision.is_spam), without keeping the text."""
     words = [w.lower() for w in _WORD.findall(text)]
-    for n in range(1, SPAM_PHRASE_WORDS + 1):
-        if len(words) < SPAM_REPEATS * n:
-            break
+    out = []
+    for n in range(1, min(SPAM_PHRASE_WORDS, len(words)) + 1):
         count = _repeats(words, n)
-        if count >= SPAM_REPEATS and count * n / len(words) > SPAM_SHARE:
-            return True
-    return False
+        out.append((count, round(count * n / len(words), 4)))
+    return tuple(out)
+
+
+def spam(text: str, link_count: int = 3, times: int = 8, share: float = 0.6) -> bool:
+    """The default profile's spam rule (ayarlar.toml: spam_link_sayisi, spam_tekrar_sayisi, spam_tekrar_orani):
+    3 or more links, or one word or phrase of up to 4 words repeated at least 8 times and making up more than
+    60 % of the words: "lol" x 10, "follow me" x 8."""
+    return links(text) >= link_count or any(c >= times and s > share for c, s in repeats(text))

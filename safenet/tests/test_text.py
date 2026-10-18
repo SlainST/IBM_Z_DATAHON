@@ -78,3 +78,14 @@ def test_listed_emoji(message, n):
     assert len(hits) == n and all(h.word == "fuck" and h.hidden for h in hits)
     if n:
         assert profanity.word_count(message, hits) == len(message.split())
+
+
+def test_spam_numbers_are_the_platforms_settings():
+    """The cached analysis keeps counts, not the text; ayarlar.toml's numbers decide (spam_tekrar_sayisi)."""
+    from safenet.engine.analysis import Analyzer
+    from safenet.engine.decision import is_spam
+    from safenet.ml.models import Models
+    a = Analyzer(Models())._analyze("follow me " * 8, False, 1, True)
+    m = {"spam_link_sayisi": 3, "spam_tekrar_sayisi": 8, "spam_tekrar_orani": 0.6}
+    assert is_spam(a, m) and not is_spam(a, m | {"spam_tekrar_sayisi": 9})
+    assert not any(isinstance(v, str) for v in vars(a).values())
