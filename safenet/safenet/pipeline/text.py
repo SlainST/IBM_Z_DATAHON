@@ -1,6 +1,8 @@
 """Sentences, possible typos, game words, quotes and spam: the small text rules around the models."""
+import bisect
 import csv
 import re
+from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -11,6 +13,7 @@ CLUE_DISTANCE = 6   # a context clue counts within this many words of the listed
 # A sentence ends at . ! ? followed by whitespace, or at a line break. "f.u.c.k" stays one word.
 _BOUNDARY = re.compile(r"(?<=[.!?])\s+|\n+")
 _WORD = re.compile(r"[^\W_]+(?:'[^\W_]+)?")
+_CLUE_TOKEN = re.compile(r"[^\W_]+(?:'[^\W_]+)?|[\U0001F300-\U0001FAFF☀-➿]")   # words and emoji: 😂 is a clue
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,14 +66,32 @@ def possible_typo(sentence: str, offset: int, hit, min_clues: int) -> dict | Non
 
 
 @lru_cache(maxsize=1)
-def _game_words() -> re.Pattern:
-    words = sorted({r["kelime"] for r in confusables() if r["kategori"] == "oyun_dili"}, key=len, reverse=True)
-    return re.compile(r"\b(?:" + "|".join(map(re.escape, words)) + r")(?:s|d|ed|ing|er|ers)?\b", re.I)
+def _game_words() -> tuple[re.Pattern, dict[str, set]]:
+    clues: dict[str, set] = {}
+    for r in confusables():
+        if r["kategori"] == "oyun_dili":
+            clues.setdefault(r["kelime"].lower(), set()).update(r["clues"])
+    words = sorted(clues, key=len, reverse=True)
+    return re.compile(r"\b(" + "|".join(map(re.escape, words)) + r")(?:s|d|ed|ing|er|ers)?\b", re.I), clues
 
 
-def without_game_words(sentence: str) -> str:
-    """oyun_dili_serbest: 'kill / die / destroy' are taken out before the models score the sentence."""
-    return _game_words().sub(" ", sentence)
+def game_words(text: str, min_clues: int, keep=()) -> list[Span]:
+    """oyun_dili_serbest: the game words ('kill', 'die', 'destroy'...) used in game context, which are taken out
+    before the models score the sentence. In context means at least min_clues of the word's clues
+    (karistirilabilir_kelimeler.csv) within CLUE_DISTANCE words, anywhere in the message: "gg, I will kill you
+    next round". A word inside a listed phrase (keep: "kill yourself") is never a game word."""
+    pattern, clues = _game_words()
+    tokens = [(m.start(), m.group(0).lower()) for m in _CLUE_TOKEN.finditer(text)]
+    starts = [pos for pos, _ in tokens]
+    out = []
+    for m in pattern.finditer(text):
+        if any(k.start < m.end() and m.start() < k.end for k in keep):
+            continue
+        at = bisect.bisect_left(starts, m.start())
+        near = {w for _, w in tokens[max(0, at - CLUE_DISTANCE):at + CLUE_DISTANCE + 1]}
+        if len(near & clues[m.group(1).lower()]) >= min_clues:
+            out.append(Span(m.start(), m.end()))
+    return out
 
 
 _QUOTED = re.compile(r"[\"“”«»„]([^\"“”«»„]{3,})[\"“”«»„]")
@@ -93,12 +114,17 @@ def quoted(text: str, span: Span, previous: Span | None) -> bool:
 _LINK = re.compile(r"https?://|www\.", re.I)
 
 
-def spam(text: str) -> bool:
-    """3 or more links, or one word repeated at least 8 times making up more than 60 % of the words."""
-    if len(_LINK.findall(text)) >= 3:
-        return True
+def links(text: str) -> int:
+    return len(_LINK.findall(text))
+
+
+def repeats(text: str) -> tuple[tuple[int, float], ...]:
+    """For the most repeated word, 2-word and 3-word phrase: how often it occurs and what share of the message's
+    words it makes up ("follow me" x 8: 8 times, 1.0). The spam rule (decision.py) compares them with the
+    platform's spam_tekrar_sayisi and spam_tekrar_orani."""
     words = [w.lower() for w in _WORD.findall(text)]
-    if len(words) < 8:
-        return False
-    top = max(words.count(w) for w in set(words))
-    return top >= 8 and top / len(words) > 0.6
+    out = []
+    for n in (1, 2, 3):
+        top = max(Counter(tuple(words[i:i + n]) for i in range(len(words) - n + 1)).values(), default=0)
+        out.append((top, round(min(1.0, top * n / len(words)), 4) if words else 0.0))   # overlaps: "ha ha ha"
+    return tuple(out)

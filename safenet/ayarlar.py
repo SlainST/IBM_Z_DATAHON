@@ -34,9 +34,12 @@ def _birlestir(taban, ust):
 def _kontrol_et(a):
     """Yanlış girilmiş ayarları anlaşılır bir hatayla durdurur."""
     m, g = a["mesaj"], a["gizli_puan"]
-    for ad in ["sari_esigi", "cok_kotu_esigi", "tehdit_esigi", "nefret_esigi", "spam_kufur_orani"]:
+    for ad in ["sari_esigi", "cok_kotu_esigi", "tehdit_esigi", "nefret_esigi", "spam_kufur_orani", "spam_tekrar_orani"]:
         if not 0 <= m[ad] <= 1:
             raise ValueError(f"mesaj.{ad} 0 ile 1 arasında olmalı (şu an {m[ad]})")
+    for ad in ["spam_link_sayisi", "spam_tekrar_sayisi"]:
+        if not (isinstance(m[ad], int) and m[ad] >= 2):
+            raise ValueError(f"mesaj.{ad} en az 2 olan bir tam sayı olmalı (şu an {m[ad]})")
     if m["sari_esigi"] >= m["cok_kotu_esigi"]:
         raise ValueError("mesaj.sari_esigi, mesaj.cok_kotu_esigi'nden küçük olmalı")
     if m["sari_davranis"] not in ("teslim", "teslim_ve_uyari_onerisi", "beklet"):

@@ -3,6 +3,7 @@ from collections import Counter
 
 from .. import settings
 from ..ml.models import Models
+from ..pipeline import profanity
 from ..state.store import utcnow
 from . import points as pts
 from .analysis import Analyzer
@@ -88,14 +89,15 @@ class Moderator:
         decision = stored["decision"]
         worst = analysis.sentences[stored["worst"]] if stored["worst"] is not None and stored["worst"] < len(analysis.sentences) else None
         harmful = stored["colour"] in ("yellow", "red")
+        starred = profanity.star(text, analysis.hits) if decision != "allow" else None
         return {
             "key": f"{platform}/{group}/{sender}",
             "platform": platform, "group": group, "sender": sender, "recipient": recipient,
             "message_id": message_id,
             "decision": decision,
-            "recipient_sees": text if decision == "allow" else analysis.censored_text if decision == "censor" else None,
+            "recipient_sees": text if decision == "allow" else starred if decision == "censor" else None,
             "reason": stored["reason"],
-            "worst_sentence": analysis.censored_text[worst.start:worst.end] if worst and decision != "allow" else None,
+            "worst_sentence": starred[worst.start:worst.end] if worst and decision != "allow" else None,
             "harm": stored["harm"],
             "wordless_harm": stored["wordless_harm"],
             "category": stored["category"],

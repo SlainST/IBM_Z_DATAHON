@@ -32,6 +32,9 @@ cok_kotu_esigi = 0.85              # bir cümlenin KELİMESİZ puanı bundan yü
 tehdit_esigi = 0.60                # kategori "tehdit" ve zararlılık bundan yüksekse KIRMIZI (tehditte daha hassas)
 nefret_esigi = 0.75                # kategori ırk/din/cinsiyet ve kelimesiz puan bundan yüksekse KIRMIZI
 spam_kufur_orani = 0.30            # kelimelerin bu oranından fazlası küfürse KIRMIZI (küfür yağmuru / spam)
+spam_link_sayisi = 3               # mesajda en az bu kadar link varsa KIRMIZI (spam)
+spam_tekrar_sayisi = 8             # bir kelime ya da en fazla 3 kelimelik bir kalıp en az bu kadar tekrarlanıp
+spam_tekrar_orani = 0.60           # mesajın kelimelerinin bu oranından fazlasını oluşturuyorsa KIRMIZI ("lol" x10, "follow me" x8)
 sari_davranis = "teslim_ve_uyari_onerisi"  # SARI mesaj: "teslim" | "teslim_ve_uyari_onerisi" | "beklet"
                                    # (teslim = sansürlü teslim; uyarı önerisi platforma bilgi olarak döner; beklet = moderatöre)
 alinti_korumasi = true             # tırnak içinde ya da "he told me ..." diye aktarılan tehdit engellenmez, beklet kararı alır

@@ -1,4 +1,6 @@
 """HTTP layer: keys, validation, every endpoint (memory store, dev keys)."""
+from safenet.api.schemas import SCHEMAS, SCHEMAS_DIR, BatchResponse, CheckResponse, schema_text
+
 KEY = {"X-API-Key": "dev-demo_sosyal"}
 
 
@@ -31,6 +33,20 @@ def test_check_answer_shape(client):
         "text": "Great match yesterday Mark. But if you show up on Friday I'll f*cking break your legs."}).json()
     assert r["key"] == "demo_sosyal/t_77/u_4821" and r["decision"] == "block"
     assert r["latency_ms"] >= 0 and r["replayed"] is False
+
+
+def test_answers_match_the_published_schemas(client):
+    texts = ["see you tomorrow", "f*ck, I missed the bus", "I fed the fuck at the lake", "you are an idiot",
+             'He told me "I will kill you tomorrow".', "I will kill you", "follow me " * 8]
+    msgs = [{"sender_id": "sch1", "recipient_id": "sch2", "message_id": f"sch_{i}", "text": t} for i, t in enumerate(texts)]
+    first = BatchResponse.model_validate(client.post("/v1/check/batch", headers=KEY, json={"messages": msgs}).json())
+    assert {r.decision for r in first.results} == {"allow", "censor", "hold", "block"}
+    again = CheckResponse.model_validate(client.post("/v1/check", headers=KEY, json=msgs[3]).json())
+    assert again.replayed and again.decision == first.results[3].decision
+    for name, model in SCHEMAS.items():
+        assert (SCHEMAS_DIR / f"{name}.schema.json").read_text(encoding="utf-8") == schema_text(model), \
+            f"schemas/{name}.schema.json is out of date: python scripts/write_schemas.py"
+    assert {"CheckResponse", "BatchResponse"} <= client.get("/openapi.json").json()["components"]["schemas"].keys()
 
 
 def test_batch_in_order(client):
