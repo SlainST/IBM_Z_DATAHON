@@ -36,6 +36,20 @@ added up, they stop reaching B, while A can still write to everyone else. Messag
 - **Every number is a setting:** each platform picks a profile (social media, education, game, workplace) in
   `ayarlar.toml`; a new platform is a new block, no code.
 
+## Measured on the LinuxONE server
+
+Against the targets of the team's design, on data never trained on ([details](safenet/docs/RESULTS.md)):
+
+| | Result | Target |
+|---|---|---|
+| Harmful messages caught (37,588 test messages, social profile / school profile) | 84.0 % / 86.3 % | ≥ 85 % |
+| Harmless messages held or blocked | 0.6 % | ≤ 5 % |
+| Innocent look-alikes blocked ("I fed the duck", "I'm a proud Muslim", "Scunthorpe") | 0 of 124 | none |
+| Category right (human labels) | 96.4 % | ≥ 75 % |
+| Bullied users who stop receiving the bully's messages (1:1 simulation) | 6 of 6 | every one |
+| The team's own evaluation set: expected decision | 310 of 312 | |
+| Time per message on one core (p50 / p99); throughput on 3 vCPUs | 2.0 / 7.7 ms; ~890 msg/s | < 10 ms |
+
 ## Run it
 
 ```bash
