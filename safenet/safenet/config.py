@@ -18,8 +18,3 @@ DEV_KEYS = os.getenv("SAFENET_DEV_KEYS", "0") == "1"
 API_KEYS_FILE = Path(os.getenv("SAFENET_API_KEYS", ROOT / "config" / "api_keys.toml"))
 MODELS_DIR = Path(os.getenv("SAFENET_MODELS_DIR", ROOT / "models"))
 ANALYSIS_CACHE = _int("SAFENET_ANALYSIS_CACHE", 4096)
-
-# Used by the older prototype modules (lexicon.py, classifier.py), kept for them.
-LEXICON_DIR = Path(os.getenv("SAFENET_LEXICON_DIR", ROOT / "data" / "lexicon"))
-MODEL_PATH = Path(os.getenv("SAFENET_MODEL_PATH", ROOT / "models" / "toxicity.joblib"))
-DEFAULT_PROFILE = os.getenv("SAFENET_DEFAULT_PROFILE", "teen")
