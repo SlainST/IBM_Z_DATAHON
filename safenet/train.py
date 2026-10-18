@@ -322,7 +322,7 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     model2 = fit_final(train_fit[train_fit[HARMFUL] == 1], "category", category_weights, c2, bits=19)
     joblib.dump(model1, out_dir / "model1.joblib", compress=3)
     joblib.dump(model2, out_dir / "model2.joblib", compress=3)
-    info = {"trained": time.strftime("%Y-%m-%dT%H:%M:%S"), "machine": platform.machine(), "byteorder": sys.byteorder,
+    info = {"trained": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "machine": platform.machine(), "byteorder": sys.byteorder,
             "python": platform.python_version(), "sklearn": sklearn.__version__, "numpy": np.__version__,
             "model1": {"C": c1, "bits": 20}, "model2": {"C": c2, "bits": 19},
             "training_messages": len(train_fit), "synthetic": report.get("augmentation", {}).get("per_kind", {})}

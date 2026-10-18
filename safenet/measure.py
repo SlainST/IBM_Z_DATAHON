@@ -230,6 +230,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--quick", action="store_true", help="3,000 test messages instead of all")
     ap.add_argument("--markdown", type=Path, help="also write the scorecard as Markdown")
+    ap.add_argument("--out", type=Path, help="the JSON report (default veri/measure_report.json)")
     args = ap.parse_args()
 
     started = time.time()
@@ -250,7 +251,7 @@ def main():
     report["simulation"] = {p: {k: v for k, v in s.items() if k != "_rows"} for p, s in simulate.run(models).items()}
     report["minutes"] = round((time.time() - started) / 60, 1)
 
-    out = DATA / ("measure_report_quick.json" if args.quick else "measure_report.json")
+    out = args.out or DATA / ("measure_report_quick.json" if args.quick else "measure_report.json")
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     print()
     for name, value, goal, met in scorecard(report):

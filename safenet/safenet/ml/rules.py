@@ -1,20 +1,22 @@
 """Precise phrase rules on top of the two models, and the insult cap.
 
-Model 1 gives the probability that a sentence is harmful, learned from ~150k public comments. Two things it
+Model 1 gives the probability that a sentence is harmful, learned from ~150k public comments. Three things it
 cannot do well on its own:
 
 1. Rare kinds of harm. The data has ~480 threats and almost no sexual requests to a child, blackmail or
    "everyone would be happier if you disappeared", so phrasings it never saw score low. A sentence matching
-   one of the RULES below gets at least that rule's floor and its category, whatever the models say.
+   one of the rules below gets at least that rule's floor and its category, whatever the models say.
 2. Severity. A probability is not a severity: "you are an idiot" is harmful almost surely (0.99), but it is an
    insult, and the team's evaluation set (degerlendirme_seti.csv) expects insults to be yellow (0.60-0.75),
    not blocked as "very harmful". A sentence Model 2 calls an insult, that matches no rule and attacks no
    identity, gets at most INSULT_CAP: yellow on every profile, never red by itself.
-3. Identity words. In the data 91 % of the messages with "gay" are harmful, so the model still scores
-   "i'm gay i love men" 0.68 and "she's the first black woman to win that award" 0.93. When a sentence only
-   mentions an identity (no slur, no "you muslim", no claim about the whole group, no hostile word, no rule,
-   no listed word), it is scored once more without the identity words and keeps the lower score: the mere
-   mention of an identity adds nothing (ayarlar.toml), and an attack keeps its score.
+3. Identity words and words that name a harm. In the data 91 % of the messages with "gay" are harmful, so the
+   model still scores "i'm gay i love men" 0.68 and "she's the first black woman to win that award" 0.93; it
+   blocked "Racism has no place in sports." When a sentence only mentions an identity (no slur, no "you muslim",
+   no claim about the whole group, no hostile word, no rule, no listed word), or names a harm without being
+   addressed to the reader ("racism", "bullying": "i was bullied at school"), it is scored once more without
+   those words and keeps the lower score: the mere mention of an identity adds nothing (ayarlar.toml), talking
+   about bullying is not bullying, and an attack keeps its score.
 
 Every pattern was checked on veri/birlesik_veri.csv: precision on the training split (share of matched messages
 that are labelled harmful) and how often it fires on harmless messages (models/README.md, "Rules"). Patterns
@@ -48,7 +50,9 @@ class Match:
 
 
 _YOU = r"(you|u|ya|yourself|urself|ur family|your family|your mom|your kids)"
-_FIRST = r"(i'?ll|i will|i'?m going to|im going to|i am going to|i'?m gonna|im gonna)\s+((?!not\b|never\b|no\b)\w+\s+){0,2}"
+# "i'll", "i'm going to"... and up to two more words, none of them a negation ("i will never hurt you")
+_FIRST = (r"(i'?ll|i will|i'?m going to|im going to|i am going to|i'?m gonna|im gonna)\s+"
+          r"((?!not\b|never\b|no\b)\w+\s+){0,2}")
 _OR_ELSE = r"\bor\s+(else\s+)?(i'?ll|i will|i'?m gonna|im gonna|i'?m going to|im going to)\s+"
 
 THREAT = [
@@ -183,6 +187,16 @@ HOSTILE = re.compile(
     r"that'?s gay|thats gay)\b")
 
 
+# Words that name a harm instead of doing it: "racism has no place in sports", "i was bullied at school"
+TOPIC = re.compile(r"\b(racism|racist|racists|sexism|sexist|sexists|homophob\w*|transphob\w*|islamophob\w*|"
+                   r"antisemit\w*|misogyn\w*|xenophob\w*|discriminat\w*|bully|bullies|bullied|bullying|cyberbully\w*|"
+                   r"hate speech|hate crimes?)\b")
+# "i'm not sexist but...", "call me racist, but...": the disclaimer that opens prejudice (116 of the 132 harmful
+# test messages a topic-word rescoring let through); with it nothing is taken out of the sentence
+DISCLAIMER = re.compile(r"\b(not|n'?t|never|call me|calling me|am i|i'?m no)\s+(\w+\s+)?(a\s+)?"
+                        r"(racist|sexist|homophobic|transphobic|islamophobic|bigot|bigoted|misogynist)\b")
+
+
 def mention_only(clean: str, identity: dict, has_listed_words: bool) -> bool:
     """An identity is mentioned and nothing in the sentence attacks it (3. in the module docstring)."""
     return bool(identity["gruplar"]) and not (identity["hakaret_kelimesi"] or has_listed_words
@@ -190,6 +204,26 @@ def mention_only(clean: str, identity: dict, has_listed_words: bool) -> bool:
                                               or _LABEL.search(clean) or HOSTILE.search(clean))
 
 
+def mentions(clean: str, identity: dict, has_listed_words: bool, addressed: bool) -> tuple[bool, bool]:
+    """(take out the identity words, take out the harm words) before scoring the sentence once more: the identity
+    when it is only mentioned, the harm words when the sentence is not addressed to the reader. Nothing is taken
+    out of a sentence with a listed word or with an identity that may be attacked."""
+    if has_listed_words or DISCLAIMER.search(clean):
+        return False, False
+    identity_words = mention_only(clean, identity, False)
+    if identity["gruplar"] and not identity_words:
+        return False, False
+    return identity_words, bool(not addressed and TOPIC.search(clean))
+
+
+def without(clean: str, identity_words: bool = True, topic_words: bool = False) -> str:
+    """The sentence without those words: what the model would say if they were not there."""
+    if identity_words:
+        clean = _IDENTITY.sub(" ", clean)
+    if topic_words:
+        clean = TOPIC.sub(" ", clean)
+    return re.sub(r"\s+", " ", clean).strip()
+
+
 def without_identity(clean: str) -> str:
-    """The sentence with its identity words taken out: what the model would say if no identity were named."""
-    return re.sub(r"\s+", " ", _IDENTITY.sub(" ", clean)).strip()
+    return without(clean, identity_words=True)

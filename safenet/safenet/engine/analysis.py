@@ -118,9 +118,11 @@ class Analyzer:
                 found = found if found and found.rule.category == "threat" else None
                 found_wordless = found_wordless if found_wordless and found_wordless.rule.category == "threat" else None
             texts = [clean, clean_wordless]
-            mention = not (found or found_wordless) and rules.mention_only(clean, identity, bool(mine))
-            if mention:      # also scored without the identity words; the lower score is kept (rules.py, 3.)
-                texts += [rules.without_identity(clean), rules.without_identity(clean_wordless)]
+            take = (False, False) if found or found_wordless else rules.mentions(clean, identity, bool(mine),
+                                                                                 temizlik.hedefli_mi(raw))
+            mention = any(take)
+            if mention:      # also scored without what it only mentions; the lower score is kept (rules.py, 3.)
+                texts += [rules.without(clean, *take), rules.without(clean_wordless, *take)]
             parts.append((sp, raw, mine, typos, clean, identity, is_quoted, found, found_wordless, mention,
                           len(prepared)))
             prepared += texts

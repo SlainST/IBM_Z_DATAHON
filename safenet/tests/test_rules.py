@@ -94,3 +94,25 @@ def test_a_listed_word_keeps_the_identity_in_the_score():
 def test_without_identity():
     assert rules.without_identity("she is the first black woman to win") == "she is the first to win"
     assert rules.without_identity("i'm gay and i love men") == "i'm and i love men"
+
+
+@pytest.mark.parametrize("text, addressed, take", [
+    ("racism has no place in sports", False, (False, True)),
+    ("i was bullied at school today", False, (False, True)),
+    ("you are a racist", True, (False, False)),                     # aimed at the reader: scored as it is
+    ("islam is a religion of bigotry", False, (False, False)),      # an identity that may be attacked
+    ("i'm gay and i hate homophobia", False, (False, False)),       # "hate" keeps the identity's part
+    ("my gay friend was bullied", False, (True, True)),
+    ("see you tomorrow", True, (False, False)),
+    ("i'm not sexist but women just shouldn't be announcers", False, (False, False)),   # the disclaimer
+    ("call me racist, but racism isn't real", False, (False, False)),
+])
+def test_what_a_sentence_only_mentions(text, addressed, take):
+    clean = temizlik.temizle(text)
+    assert rules.mentions(clean, kimlik.kimlik_analizi(clean), False, addressed) == take
+
+
+def test_nothing_is_taken_out_next_to_a_listed_word():
+    clean = temizlik.temizle("fuck racism")
+    assert rules.mentions(clean, kimlik.kimlik_analizi(clean), True, False) == (False, False)
+    assert rules.without("my gay friend was bullied", True, True) == "my friend was"
