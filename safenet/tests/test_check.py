@@ -87,10 +87,12 @@ def test_quoted_threat_is_held(mod, uid):
     assert r["decision"] == "hold" and r["reason"] == "quoted_threat"
 
 
-def test_game_words_free_on_game_platform(mod, uid):
-    game = mod.check("demo_oyun", msg(uid, "I will kill you"))
-    social = mod.check("demo_sosyal", msg(uid, "I will kill you"))
+def test_game_words_free_only_in_game_context(mod, uid):
+    game = mod.check("demo_oyun", msg(uid, "gg, I will kill you next round"))
+    no_context = mod.check("demo_oyun", msg(uid, "I will kill you"))
+    social = mod.check("demo_sosyal", msg(uid, "gg, I will kill you next round"))
     assert game["decision"] == "allow"
+    assert no_context["decision"] == "block" and no_context["reason"] == "threat"
     assert social["decision"] == "block" and social["reason"] == "threat"
 
 

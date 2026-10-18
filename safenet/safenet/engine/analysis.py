@@ -1,4 +1,8 @@
-"""PDF steps 2-7: everything about the text itself, before any points. Pure, so each worker caches it."""
+"""PDF steps 2-7: everything about the text itself, before any points. Pure, so each worker caches it.
+
+The cache holds offsets, scores and the listed words found, never the text: the starred text is made again
+from the request for each answer (moderator.py), so no message stays in memory (DECISION_ENGINE choice 16).
+"""
 import hashlib
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -34,8 +38,8 @@ class Analysis:
     sentences: list[Sentence]
     hits: list
     words: int
-    spam: bool
-    censored_text: str
+    links: int           # for the spam rule (decision.is_spam), whose numbers are the platform's
+    repeats: tuple       # (times, share of the words) of the most repeated word, 2-word and 3-word phrase
 
 
 def _remove(sentence: str, offset: int, hits) -> str:
@@ -79,16 +83,16 @@ class Analyzer:
 
     def _analyze(self, text: str, game_words_free: bool, min_clues: int, quote_protection: bool) -> Analysis:
         hits = profanity.find(text)
+        free = tx.game_words(text, min_clues, hits) if game_words_free else []
         spans = tx.sentences(text)
         parts, prepared = [], []
         for i, sp in enumerate(spans):
             raw = text[sp.start:sp.end]
             mine = [h for h in hits if sp.start <= h.start < sp.end]
+            games = [g for g in free if sp.start <= g.start < sp.end]
             typos = [t for h in mine if (t := tx.possible_typo(raw, sp.start, h, min_clues))]
-            scored = tx.without_game_words(raw) if game_words_free else raw
-            wordless_raw = _remove(raw, sp.start, mine)
-            if game_words_free:
-                wordless_raw = tx.without_game_words(wordless_raw)
+            scored = _remove(raw, sp.start, games)
+            wordless_raw = _remove(raw, sp.start, sorted(mine + games, key=lambda x: x.start))
             clean, clean_wordless = temizlik.temizle(scored), temizlik.temizle(wordless_raw)
             prepared += [clean, clean_wordless]
             parts.append((sp, raw, mine, typos, clean))
@@ -108,5 +112,5 @@ class Analyzer:
             sentences.append(Sentence(sp.start, sp.end, harm, wordless, category, mine, typos, identity, is_quoted,
                                       _key_words(clean, counted)))
 
-        return Analysis(sentences, hits, profanity.word_count(text, hits), tx.spam(text), profanity.star(text, hits))
+        return Analysis(sentences, hits, profanity.word_count(text, hits), tx.links(text), tx.repeats(text))
 

@@ -1,7 +1,7 @@
 """PDF step 8a: the colour of each sentence, the worst one deciding for the message, and the decision.
 
 RED    threat and harm >= tehdit_esigi; race / religion / gender and wordless >= nefret_esigi;
-       wordless >= cok_kotu_esigi; spam; or more than spam_kufur_orani of the words are listed profanity
+       wordless >= cok_kotu_esigi; spam (is_spam); or more than spam_kufur_orani of the words are listed profanity
 YELLOW harm >= sari_esigi
 GREEN  everything else
 """
@@ -42,13 +42,20 @@ def counted_hits(analysis: Analysis) -> list:
     return out
 
 
+def is_spam(analysis: Analysis, m: dict) -> bool:
+    """spam_link_sayisi links or more, or a word or a phrase of up to 3 words repeated at least spam_tekrar_sayisi
+    times and making up more than spam_tekrar_orani of the words ("lol" x 10, "follow me" x 8)."""
+    return analysis.links >= m["spam_link_sayisi"] or any(
+        times >= m["spam_tekrar_sayisi"] and share > m["spam_tekrar_orani"] for times, share in analysis.repeats)
+
+
 def judge(analysis: Analysis, a: dict) -> Verdict:
     m = a["mesaj"]
     hits = counted_hits(analysis)
 
     reds = [(RED_ORDER.index(r), -s.harm, i) for i, s in enumerate(analysis.sentences) if (r := _red_reason(s, m))]
     message_red = None
-    if analysis.spam:
+    if is_spam(analysis, m):
         message_red = "spam"
     elif len(hits) / analysis.words > m["spam_kufur_orani"]:
         message_red = "profanity_ratio"
