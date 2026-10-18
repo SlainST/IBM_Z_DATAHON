@@ -1,69 +1,91 @@
 # Results
 
 SafeNet measured against the targets of the team's design (`SafeNet_Model_Tasarimi.pdf`, section 9), through the
-code the API runs, on the LinuxONE server (s390x, IBM z17), 18 Oct 2026, with the v3 models and the phrase rules.
-Nothing measured here was trained on: the test split (37,588 messages), YouTube (3,459 comment threads), the
-124 innocent example sentences of `karistirilabilir_kelimeler.csv`, the 70 gray-zone messages, the 1:1 simulation
-(40 conversations, 80 users) and the team's evaluation set (104 messages × 3 platforms).
-Every message is judged as the first message of a new sender; the simulation measures the hidden points.
+code the API runs, on the LinuxONE server (s390x, IBM z17), 18 Oct 2026, with the v4 models, the phrase rules and
+the whole-message score. Nothing measured here was trained on: the test split (37,588 messages), YouTube (3,459
+comment threads), the 124 innocent example sentences of `karistirilabilir_kelimeler.csv`, the 70 gray-zone
+messages, the 1:1 simulation (40 conversations, 80 users) and the team's evaluation set (104 messages × 3
+platforms). Every message is judged as the first message of a new sender; the simulation measures the hidden points.
 
 | Target (PDF section 9) | Measured | Goal | Met |
 |---|---|---|---|
-| Harmful messages caught (test split, `demo_sosyal`) | 84.0 % (85.0 % with the proposed `sari_esigi` 0.45) | ≥ 85 % | no (yes with the proposal) |
+| Harmful messages caught (test split, `demo_sosyal`) | 85.9 % | ≥ 85 % | yes |
 | False alarms: harmless messages held or blocked (`demo_sosyal`) | 0.6 % | ≤ 5 % | yes |
-| Per source: harmful caught / false alarms | cyberbullying 89 % / 1.8 %, Kaggle 78 % / 3.5 %, Twitter 52 % / 3.5 %, Wikipedia 79 % / 0.3 % | reported | |
-| Unseen platform, YouTube: harmful caught / false alarms | 84.9 % / 16.9 % | reported | |
+| Per source: harmful caught / false alarms | cyberbullying 91 % / 1.8 %, Kaggle 80 % / 3.7 %, Twitter 57 % / 3.8 %, Wikipedia 82 % / 0.3 % | reported | |
+| Unseen platform, YouTube: harmful caught / false alarms | 85.1 % / 17.0 % | reported | |
 | Innocent sentences blocked (duck, Muslim, bullied, Scunthorpe...) | 0 of 124 on every platform | none | yes |
-| Gray zone (conflicting labels) in yellow | 19 % (green 73 %, red 9 %) | most | no |
+| Gray zone (conflicting labels) in yellow | 23 % (green 69 %, red 9 %) | most | no |
 | Category accuracy, human labels (Model 2) | 96.4 % | ≥ 75 % | yes |
-| Time per message, whole analysis on one core (p50 / p99) | 2.0 / 7.7 ms | < 10 ms | yes |
+| Time per message, whole analysis on one core (p50 / p99) | 2.3 / 8.1 ms | < 10 ms | yes |
 | 1:1 simulation: restricted, of the users who should be (`demo_sosyal`) | 89 % (24 of 27) | ≥ 90 % | no |
 | 1:1 simulation: restricted, of the others | 11 %, 0 % by harmless messages alone | ≤ 5 % | see below |
 | Bullying conversations where the victim stops getting the bully's messages | 6 of 6 | every one | yes |
 | The team's evaluation set: expected decision given | 310 of 312 (99.4 %) | reported | |
 
 Per platform on the test split (harmful caught / harmless held or blocked / harmless censored):
-`demo_sosyal` 84.0 % / 0.6 % / 4.6 %, `demo_okul` 86.3 % / 4.9 % / 1.3 %, `demo_oyun` 82.1 % / 0.6 % / 4.0 %.
+`demo_sosyal` 85.9 % / 0.6 % / 5.2 %, `demo_okul` 87.8 % / 5.9 % / 1.2 %, `demo_oyun` 83.8 % / 0.6 % / 4.2 %.
 1:1 simulation (restricted of those who should be / of the others, by harmless messages alone / bullying
 conversations protected): `demo_sosyal` 89 % / 11 %, 0 % / 6 of 6, `demo_okul` 93 % / 19 %, 2 % / 6 of 6,
 `demo_oyun` 74 % / 6 %, 0 % / 6 of 6.
 
-## Models against the fallback rules
+## What changed today
 
-| | v3 + rules | v2 + rules | fallback rules only |
-|---|---|---|---|
-| Harmful caught / false alarms (`demo_sosyal`) | 84.0 % / 0.6 % | 84.1 % / 0.6 % | 54.2 % / 0.3 % |
-| Innocent sentences blocked | 0 | 1 | 2 |
-| Category accuracy | 96.4 % | 96.3 % | 79.0 % |
-| 1:1 simulation: restricted, of those who should be | 89 % | 89 % | 56 % |
-| Bullying conversations protected | 6 of 6 | 6 of 6 | 6 of 6 |
-| The team's evaluation set | 310 of 312 | 305 of 312 | 301 of 312 |
+Earlier today v3 caught 84.0 % on `demo_sosyal` and the gray zone was 19 % yellow. Two things moved them, measured
+apart on the same test split:
 
-The fallback rules (a few dozen weighted phrases) block little and catch half; the models catch most harmful
-messages without blocking more harmless ones.
+| | v4 + engine (now) | v3 + engine | v3, earlier today | fallback rules + engine |
+|---|---|---|---|---|
+| Harmful caught / false alarms (`demo_sosyal`) | 85.9 % / 0.6 % | 85.2 % / 0.6 % | 84.0 % / 0.6 % | 54.4 % / 0.3 % |
+| `demo_okul`: harmful caught / harmless held or blocked | 87.8 % / 5.9 % | 87.1 % / 5.2 % | 86.3 % / 4.9 % | 54.4 % / 1.9 % |
+| Gray zone in yellow | 23 % | 21 % | 19 % | 1 % |
+| Innocent sentences blocked | 0 | 0 | 0 | 2 |
+| Category accuracy | 96.4 % | 96.4 % | 96.4 % | 79.0 % |
+| The team's evaluation set | 310 of 312 | 310 of 312 | 310 of 312 | 304 of 312 |
+
+- **The engine** (`safenet/engine/analysis.py`, `safenet/ml/rules.py`). Model 1 learned from whole messages but the
+  API scores sentences: harm spread over sentences that each look mild ("you! you blocked me worm why!!") was
+  allowed. A message of several sentences, up to 300 characters, is now scored as a whole too; that score can make
+  it yellow, never red, and never for a message that reports someone or has a likely typo. Threats in common
+  implicit phrasings ("you'll regret coming to school tomorrow", "keep talking and see what happens"), a victim
+  reporting names ("some kids keep calling me fat and ugly", scored without them) and an identity label with an
+  intensifier ("u flippin homosexual") are new rules, and the models no longer read ordinary words that carry a
+  slur ("snigger": "The kids began to snigger at the joke." was blocked on `demo_okul` with the v4 models).
+- **The models: graded labels (v4).** About ten people labelled each Wikipedia comment; where they split (30-70 %),
+  Model 1 now learns their share instead of the majority's 0 or 1 (`models/README.md`). Every source ranks a little
+  better (test ROC-AUC 0.9739 → 0.9745, PR-AUC 0.9336 → 0.9347), and a comment people disagree on gets a middle
+  score: the gray zone the design asks for.
+
+Both were chosen on a validation split carved out of the training split (ten Model 1 variants, `models/README.md`);
+the test split was used once per measurement, as before.
 
 ## Where a target is not met
 
-- **Harmful caught, 84.0 % on `demo_sosyal`.** One threshold away: `sari_esigi` 0.45 instead of 0.50 gives
-  85.0 % with no more messages held or blocked (`models/README.md`, "Threshold proposals"). The school profile
-  already catches 86.3 %. By source, Twitter's sexism and racism tweets are caught least (52 %), then Kaggle (78 %).
-  Scoring identity mentions the way the data labels them would catch more (86.7 % with v2), but in a hand check of
-  70 such messages about 4 in 5 were harmless mentions labelled harmful ("i am a christian woman, i believe in
-  ..."), and the design says an identity that is only mentioned adds nothing.
-- **Gray zone.** The 70 messages whose datasets disagreed are mostly scored green: the models are confident where
-  people were not. The design's wish ("most of them yellow") would need a model trained on graded labels.
-- **Simulation, 89 % of the users who should be restricted.** The three who are not are two friends swearing at each
-  other (no banter discount: their word points add up, but not to 70 within a conversation) and one troll. Whether
-  swearing alone should restrict faster is a points setting (`ayarlar.toml`).
-- **Simulation, 11 % of the others restricted.** Every one of them sent a message labelled harmful first: the
-  simulation gives normal users and victims 2 % harmful messages at random, some of them racist slurs, and a
-  repentant user starts with two harmful messages drawn from the test split, here a threat and a homophobic slur.
-  No user was restricted by harmless messages alone on `demo_sosyal` and `demo_oyun`; on `demo_okul` one was (2 %).
+- **Gray zone, 23 % yellow.** Up from 19 %, not most. Of the 70 messages, 55 are tweets that two datasets
+  labelled differently, many about a TV cooking show's contestants ("kat needs serious medication", "so
+  delusional"); graded labels exist only for Wikipedia, so the tweets are still scored with the confidence of
+  their hard labels.
+- **School profile, 5.9 % of harmless messages held.** Up from 4.9 %, with 87.8 % of the harmful ones caught (86.3 %
+  before). On `egitim` yellow is held for a moderator, so catching more also holds more; the PDF's 5 % target is for
+  the default profile. `sari_esigi` 0.45 holds 5.1 % and still catches 86.9 % (`models/README.md`, "Threshold
+  proposals").
+- **Simulation, 89 % of the users who should be restricted.** Unchanged by the models. The three who are not: two
+  friends swearing at each other (no banter discount: their word points add up, but not to 70 within a
+  conversation) and one troll: of the troll's five messages labelled harmful, most are indirect jabs ("you love
+  getting smacked around, huh?") and one condemns prejudice ("it is 2019, we shouldn't be using the word gay as an
+  insult"). Whether swearing alone should restrict faster is a points setting (`ayarlar.toml`).
+- **Simulation, 11 % of the others restricted** (the same six users with v3 and v4). Every one of them sent a
+  message labelled harmful first: the simulation gives normal users and victims 2 % harmful messages drawn at random
+  from the test split, and a repentant user starts with two. In a 1:1 chat a red message with an identity in it
+  scores at least 25 (red) + 30 × 1.5 (targeted identity attack, 1:1) = 70, `susturma_esigi` itself: three of
+  the six were restricted by one such message, the other three by two or three harmful messages. At least two of the
+  messages that restricted them object to prejudice but are labelled harmful in the data ("how is consistently
+  making offensive comments that target women, gay or trans people funny?"). No user was restricted by harmless
+  messages alone on `demo_sosyal` and `demo_oyun`; on `demo_okul` one was (2 %).
 
 ## Load
 
-With the models, 3 workers on the 3 vCPUs: 887 messages a second at concurrency 4, server p50 2.2 ms
-(`../bench/RESULTS.md`).
+With the v4 models and this engine, 3 workers on the 3 vCPUs, real messages of the test split: 870 messages a
+second at concurrency 4, server p50 2.5 ms (`../bench/RESULTS.md`; v3 earlier today: 887).
 
 ## Reproduce
 
@@ -73,4 +95,5 @@ On the server, in a copy of the repository with `veri/` and the models trained t
 nice -n 10 .venv/bin/python measure.py --markdown docs/RESULTS.md   # the table (this page adds the notes)
 .venv/bin/python simulate.py --users                                # the simulation, one line per user
 .venv/bin/python degerlendir.py --hatalar                           # the team's evaluation set
+SAFENET_MODELS_DIR=/an/empty/folder .venv/bin/python measure.py     # the fallback rules
 ```

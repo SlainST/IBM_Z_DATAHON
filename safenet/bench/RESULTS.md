@@ -4,6 +4,21 @@ Machine: s390x, IBM z17 (machine type 9175), NNPA present, 3 vCPU, 7.8 GB RAM, U
 The load generator runs on the same box, so it takes CPU from the API; the numbers are a lower bound.
 Raw JSON per run: `bench/results/`.
 
+## 2026-10-18, later: the v4 models and the whole-message score, memory store
+
+The same setup as below (a separate instance on port 8100, 3 workers, points in memory, 20 s per run, `--texts`
+with the test split's messages), after training v4 and adding the whole-message score (messages up to 300
+characters are scored as a whole too).
+
+| concurrency | msg/s | p50 ms | p95 ms | p99 ms | server p50 ms | server p99 ms |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 328 | 2.65 | 6.45 | 8.55 | 2.19 | 8.02 |
+| 4 | 870 | 3.67 | 11.09 | 16.63 | 2.46 | 12.06 |
+| 8 | 703 | 9.47 | 26.73 | 37.61 | 4.19 | 25.44 |
+
+About 2 % below v3 at concurrency 4. Scoring every message as a whole would have cost more: in process, on the
+same 6,000 messages, p99 7.96 -> 9.51 ms without the 300-character limit, 7.77 -> 7.91 ms with it.
+
 ## 2026-10-18: `/v1/check` with the trained models (v3) and the phrase rules, memory store
 
 A separate instance from the `fevzi/integration` branch on port 8100 (the live API was not touched), 3 workers,

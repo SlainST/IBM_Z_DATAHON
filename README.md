@@ -28,10 +28,12 @@ added up, they stop reaching B, while A can still write to everyone else. Messag
 
 - **Two small models**, trained on the LinuxONE server with scikit-learn: Model 1 scores how harmful each
   sentence is (hashed word and character n-grams, logistic regression, ~0.5 ms per call), Model 2 names the
-  category. No GPU, no torch: they run where the data is.
+  category. Where the ten people who labelled a Wikipedia comment disagreed, Model 1 learned their share, not a
+  hard 0 or 1. No GPU, no torch: they run where the data is.
 - **Rules the team wrote around them:** disguised profanity (`f*ck`, `sh1t`, `f u c k`) is decoded and starred,
-  the worst sentence decides, a sentence is scored again without its profanity to tell swearing from malice,
-  explicit threats and severe bullying are lifted, an identity only mentioned ("I'm a proud Muslim") adds nothing,
+  the worst sentence decides and the whole message is scored too, a sentence is scored again without its
+  profanity to tell swearing from malice, threats (also "you'll regret coming to school tomorrow") and severe
+  bullying are lifted, an identity only mentioned ("I'm a proud Muslim") adds nothing,
   and a threat someone reports ("he told me ...") goes to a moderator instead of silencing the victim.
 - **Every number is a setting:** each platform picks a profile (social media, education, game, workplace) in
   `ayarlar.toml`; a new platform is a new block, no code.
@@ -42,13 +44,13 @@ Against the targets of the team's design, on data never trained on ([details](sa
 
 | | Result | Target |
 |---|---|---|
-| Harmful messages caught (37,588 test messages, social profile / school profile) | 84.0 % / 86.3 % | ≥ 85 % |
+| Harmful messages caught (37,588 test messages, social profile / school profile) | 85.9 % / 87.8 % | ≥ 85 % |
 | Harmless messages held or blocked | 0.6 % | ≤ 5 % |
 | Innocent look-alikes blocked ("I fed the duck", "I'm a proud Muslim", "Scunthorpe") | 0 of 124 | none |
 | Category right (human labels) | 96.4 % | ≥ 75 % |
 | Bullied users who stop receiving the bully's messages (1:1 simulation) | 6 of 6 | every one |
 | The team's own evaluation set: expected decision | 310 of 312 | |
-| Time per message on one core (p50 / p99); throughput on 3 vCPUs | 2.0 / 7.7 ms; ~890 msg/s | < 10 ms |
+| Time per message on one core (p50 / p99); throughput on 3 vCPUs | 2.3 / 8.1 ms; ~870 msg/s | < 10 ms |
 
 ## Run it
 

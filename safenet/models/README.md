@@ -126,7 +126,7 @@ Measured on the test split through the API's path, v4 with the rules and the who
 - `demo_sosyal` meets the design's 85 % with the current 0.50: the earlier proposal (0.45, made for v3) is
   withdrawn.
 - `egitim` (`demo_okul`): yellow is held for a moderator, so the share of harmless messages held grew with the
-  messages caught (v3: 4.9 % held, 86.3 % caught). Whether 6 % of harmless messages held is too much moderator
+  messages caught (v3: 4.9 % held, 86.3 % caught). Whether 5.9 % of harmless messages held is too much moderator
   work is the profile's choice; 0.45 holds 5.1 % and still catches 86.9 %.
 - The other thresholds stay: with the rules the scores have bands by design (threats ≥ 0.95, severe ≥ 0.92, plain
   insults ≤ 0.72), so `cok_kotu_esigi` 0.85, `nefret_esigi` 0.75 and `tehdit_esigi` 0.60 sit where they should;
