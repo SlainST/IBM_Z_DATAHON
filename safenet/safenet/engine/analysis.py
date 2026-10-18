@@ -129,13 +129,13 @@ class Analyzer:
             prepared += texts
 
         # Model 1 learned from whole messages: harm spread over sentences that each look mild ("you! you blocked
-        # me worm why!!") shows only in the whole. Not for a message that quotes someone or has a likely typo.
+        # me worm why!!") shows only in the whole (the cleaned sentences, joined). Not for a message that quotes
+        # someone or has a likely typo, nor when a rule already set a sentence's floor.
         whole, whole_at = None, len(prepared)
-        if len(parts) > 1 and not any(p[6] or p[3] for p in parts):
-            whole = temizlik.temizle(tx.without_game_words(text, text) if game_words_free else text)
+        if len(parts) > 1 and not any(p[3] or p[6] or p[7] or p[8] for p in parts):
+            whole = " ".join(p[4] for p in parts)
             addressed = temizlik.hedefli_mi(text)
-            whole_identity = kimlik.kimlik_analizi(whole, hedefli=addressed)
-            take = (False, False) if rules.find(whole) else rules.mentions(whole, whole_identity, bool(hits), addressed)
+            take = rules.mentions(whole, kimlik.kimlik_analizi(whole, hedefli=addressed), bool(hits), addressed)
             prepared += [whole] + ([rules.without(whole, *take)] if any(take) else [])
 
         scores = self.models.harm(prepared)
