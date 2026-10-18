@@ -4,6 +4,26 @@ Machine: s390x, IBM z17 (machine type 9175), NNPA present, 3 vCPU, 7.8 GB RAM, U
 The load generator runs on the same box, so it takes CPU from the API; the numbers are a lower bound.
 Raw JSON per run: `bench/results/`.
 
+## 2026-10-18: `/v1/check` with the trained models (v3) and the phrase rules, memory store
+
+A separate instance from the `fevzi/integration` branch on port 8100 (the live API was not touched), 3 workers,
+points in memory (no Postgres: the store's cost is in the next section), 20 s per run. `--texts` sends messages of
+the test split (37,588, nearly all different, many of them long Wikipedia comments): the models run on every
+request. With the 12 built-in texts each worker analyses a text once and then answers from its cache: 4,992 msg/s,
+server p50 0.06 ms, which measures everything but the models.
+
+| concurrency | msg/s | p50 ms | p95 ms | p99 ms | server p50 ms | server p99 ms |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 346 | 2.41 | 6.21 | 8.30 | 1.96 | 7.81 |
+| 4 | 887 | 3.49 | 11.11 | 17.01 | 2.17 | 12.02 |
+| 8 | 740 | 8.94 | 25.30 | 36.10 | 3.66 | 24.09 |
+
+One message costs ~2 ms of CPU (two Model 1 calls in one batch, Model 2 when needed, the rules); 3 workers on 3
+vCPUs top out near 900 msg/s with the load generator on the same machine. Chat messages are shorter than these test
+messages, so they are faster.
+
+    .venv/bin/python bench/load_test.py --key "$KEY" --seconds 20 --concurrency 4 --texts veri/birlesik_veri.csv
+
 ## 2026-10-17: `/v1/check` with Postgres 16, fallback rules (no models yet)
 
 Every message is one Postgres transaction (sender row and A -> B row locked, decision stored for retries).

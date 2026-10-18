@@ -8,6 +8,10 @@ Standard library only, so it runs on the server or on a PC through the tunnel.
 Each request gets a unique message_id, so no request is answered as a replay. Results are printed
 and written to bench/results/<timestamp>.json. Do not run it while a model is training on the
 server: there are only 3 vCPUs and both numbers would be wrong.
+
+The 12 built-in texts are analysed once per worker and then come from its analysis cache, so they measure
+everything but the models. --texts veri/birlesik_veri.csv (or any CSV with a "metin" or "text" column, or a
+.txt with one message per line) sends real messages, nearly all different: the models run on every request.
 """
 import argparse
 import http.client
@@ -36,6 +40,19 @@ TEXTS = [
     "my number is 0532 123 45 67 call me",
     "gg ez noob uninstall",
 ]
+
+
+def load_texts(path: str) -> list[str]:
+    """Messages to send: a .txt (one per line) or a CSV with a "metin" or "text" column (at most 2,000 characters)."""
+    import csv
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        if path.endswith(".txt"):
+            texts = [line.strip() for line in f]
+        else:
+            rows = csv.DictReader(f)
+            column = "metin" if "metin" in (rows.fieldnames or []) else "text"
+            texts = [r[column] for r in rows]
+    return [t[:2000] for t in texts if t and t.strip()]
 
 
 def payload(path: str, wid: int, i: int) -> dict:
@@ -141,7 +158,11 @@ def main() -> None:
     ap.add_argument("--concurrency", type=int, default=16)
     ap.add_argument("--warmup", type=float, default=3)
     ap.add_argument("--label", default="", help="saved with the result, e.g. 'workers=2 pool=5'")
+    ap.add_argument("--texts", help="send these messages instead of the 12 built-in ones (see above)")
     args = ap.parse_args()
+    if args.texts:
+        TEXTS[:] = load_texts(args.texts)
+        print(f"{len(TEXTS)} texts from {args.texts}")
 
     h = health(args.url)
     print("health:", json.dumps(h, ensure_ascii=False))
@@ -152,7 +173,7 @@ def main() -> None:
     ok = run.statuses.get(200, 0)
     lat = run.client_ms
     result = {
-        "label": args.label,
+        "label": args.label, "texts": args.texts or f"{len(TEXTS)} built-in",
         "url": args.url, "path": args.path,
         "concurrency": args.concurrency, "seconds": round(elapsed, 2),
         "requests": sum(run.statuses.values()), "ok": ok,
