@@ -15,7 +15,14 @@ may not load in the API.
     python train.py                    # full run (server: ~15 min, one CPU; run it with nice)
     python train.py --sample 20000     # quick trial, writes models_sample/
     python train.py --no-augment       # without the synthetic sentences of augment.py (the first run, v1)
+    python train.py --hard-labels      # without the annotators' shares (v3)
     python train.py --evaluate         # no training: measure models/ again -> veri/evaluation_report.json
+
+Graded labels (v4): every Wikipedia comment was labelled by about ten people, and veri/ham/toxicity_parsed_dataset.csv
+(the file veri_hazirla.py reads) keeps the share who called it toxic. Where they split (between 30 % and 70 %),
+Model 1 learns that share instead of the majority's 0 or 1: such a comment is in the training rows twice, harmful
+with weight = share and harmless with weight = 1 - share (the log-loss of a soft label). Validation and test keep
+the majority label. Without the raw file, or with --hard-labels, every label is hard (v3).
 
 Synthetic sentences (augment.py) are added to the training rows only, never to validation or test: neutral
 sentences for identity words the data made look harmful, threats (only ~480 real ones), swearing at things versus
@@ -33,6 +40,7 @@ Plain hashed features (binary, l2-normalized) scored the same PR-AUC (0.924 vs 0
 at ~0.5 ms per call and keep the model files small: the API scores every message live.
 """
 import argparse
+import hashlib
 import json
 import platform
 import sys
@@ -58,8 +66,10 @@ ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "veri"
 
 # Columns of veri/birlesik_veri.csv (veri_hazirla.py)
-TEXT, HARMFUL, CATEGORY_TR, CATEGORY_SOURCE, SOURCE, GROUP, SPLIT = (
-    "metin", "zararli", "tur", "tur_kaynagi", "kaynak", "grup_id", "bolum")
+ID, TEXT, HARMFUL, CATEGORY_TR, CATEGORY_SOURCE, SOURCE, GROUP, SPLIT = (
+    "id", "metin", "zararli", "tur", "tur_kaynagi", "kaynak", "grup_id", "bolum")
+WIKIPEDIA_RAW = DATA / "ham" / "toxicity_parsed_dataset.csv"   # ed_label_1 = share of annotators who said toxic
+GRADED_BETWEEN = (0.3, 0.7)      # annotators split between these shares: Model 1 learns the share (soft label)
 # Dataset category names -> the API's category names. Model 2 predicts the API names directly.
 CATEGORIES = {"genel_hakaret": "insult", "cinsiyet": "gender", "din": "religion", "irk": "race",
               "cinsel": "sexual", "tehdit": "threat"}
@@ -97,6 +107,31 @@ def classifier(C: float) -> LogisticRegression:
 
 def no_weights(df: pd.DataFrame):
     return None
+
+
+def row_weights(df: pd.DataFrame) -> np.ndarray:
+    return df["weight"].to_numpy()
+
+
+def annotator_shares() -> pd.Series:
+    """id -> share of the annotators who called a Wikipedia comment toxic, from the raw file veri_hazirla.py read
+    (the id is made the same way there: md5 of "wikipedia|" + the raw text). Empty without the file."""
+    if not WIKIPEDIA_RAW.exists():
+        print(f"   {WIKIPEDIA_RAW} not found: hard labels only")
+        return pd.Series(dtype=float)
+    raw = pd.read_csv(WIKIPEDIA_RAW, usecols=["Text", "ed_label_1"])
+    ids = [hashlib.md5(f"wikipedia|{t}".encode()).hexdigest()[:12] for t in raw["Text"].astype(str)]
+    return pd.Series(raw["ed_label_1"].to_numpy(), index=ids).groupby(level=0).mean()
+
+
+def graded(df: pd.DataFrame, shares: pd.Series) -> pd.DataFrame:
+    """Adds a "weight" column; a Wikipedia comment whose annotators split (GRADED_BETWEEN) becomes two rows, harmful
+    with weight = share and harmless with weight = 1 - share. Labels we fixed by hand stay hard."""
+    q = df[ID].map(shares).where((df[SOURCE] == "wikipedia") & (df[CATEGORY_SOURCE] != "duzeltme"))
+    soft = q.between(*GRADED_BETWEEN, inclusive="neither")
+    return pd.concat([df[~soft].assign(weight=1.0),
+                      df[soft].assign(**{HARMFUL: 1, "weight": q[soft]}),
+                      df[soft].assign(**{HARMFUL: 0, "weight": 1 - q[soft]})])
 
 
 def category_weights(df: pd.DataFrame) -> np.ndarray:
@@ -235,6 +270,7 @@ def main():
     ap.add_argument("--api-eval", type=int, default=12000,
                     help="at most this many messages go through the API's path (validation and test each)")
     ap.add_argument("--no-augment", action="store_true", help="train without the synthetic sentences of augment.py")
+    ap.add_argument("--hard-labels", action="store_true", help="Model 1 without the Wikipedia annotators' shares (v3)")
     ap.add_argument("--evaluate", action="store_true",
                     help="no training: measure the saved models again (e.g. after changing the API's rules)")
     args = ap.parse_args()
@@ -283,13 +319,17 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
         print(f"   + synthetic (training only), {info['harmful']} of them harmful: "
               + ", ".join(f"{k} {v}" for k, v in info["per_kind"].items()))
     inner_fit, train_fit = pd.concat([inner, synthetic]), pd.concat([train, synthetic])
+    shares = pd.Series(dtype=float) if args.hard_labels else annotator_shares()
+    inner1, train1 = graded(inner_fit, shares), graded(train_fit, shares)
+    soft = int((train1["weight"] < 1).sum() // 2)
+    print(f"   Model 1: {soft} Wikipedia comments with split annotators trained on their share (soft labels)")
 
     print("2) Model 1 (harmful?): choosing C on validation PR-AUC")
     c1, c1_scores, model1_valid = choose_c(
-        "model1", inner_fit, valid, HARMFUL, no_weights,
+        "model1", inner1, valid, HARMFUL, row_weights,
         lambda clf, B, df: average_precision_score(df[HARMFUL], clf.predict_proba(B)[:, 1]), bits=20,
         candidates=C_CANDIDATES_MODEL1)
-    report["model1"] = {"C_candidates_pr_auc": c1_scores, "C": c1}
+    report["model1"] = {"C_candidates_pr_auc": c1_scores, "C": c1, "soft_labels": soft}
 
     print("3) Model 2 (category): harmful messages only, choosing C on validation macro F1")
     inner2, valid2 = inner_fit[inner_fit[HARMFUL] == 1], valid[valid[HARMFUL] == 1]
@@ -318,13 +358,14 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     print(f"   {summary} ({elapsed(start)})")
 
     print(f"5) Final models on the whole training split (Model 1 C={c1}, Model 2 C={c2})")
-    model1 = fit_final(train_fit, HARMFUL, no_weights, c1, bits=20)
+    model1 = fit_final(train1, HARMFUL, row_weights, c1, bits=20)
     model2 = fit_final(train_fit[train_fit[HARMFUL] == 1], "category", category_weights, c2, bits=19)
     joblib.dump(model1, out_dir / "model1.joblib", compress=3)
     joblib.dump(model2, out_dir / "model2.joblib", compress=3)
     info = {"trained": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "machine": platform.machine(), "byteorder": sys.byteorder,
             "python": platform.python_version(), "sklearn": sklearn.__version__, "numpy": np.__version__,
-            "model1": {"C": c1, "bits": 20}, "model2": {"C": c2, "bits": 19},
+            "model1": {"C": c1, "bits": 20, "soft_labels": soft, "graded_between": list(GRADED_BETWEEN)},
+            "model2": {"C": c2, "bits": 19},
             "training_messages": len(train_fit), "synthetic": report.get("augmentation", {}).get("per_kind", {})}
     (out_dir / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
     report["files_mb"] = {f.name: round(f.stat().st_size / 1e6, 1)
