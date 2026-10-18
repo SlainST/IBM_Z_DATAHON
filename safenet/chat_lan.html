@@ -70,6 +70,7 @@ async function api(path, body) {
 function verdict(e) {
   const why = [REASON[e.reason] || e.reason, e.category && e.category !== e.reason ? e.category : ""].filter(Boolean).join(", ");
   let t;
+  if (e.reason === "safenet_unavailable") return `<b class="block">⚠ SafeNet unreachable: not sent</b> (try again)`;
   if (e.decision === "allow") t = `<b class="allow">✓ delivered</b>`;
   else if (e.decision === "censor") t = e.delivered !== e.text ? `<b class="censor">✳ delivered as:</b> ${esc(e.delivered)}`
                                                               : `<b class="censor">⚠ delivered with a warning</b> (${esc(why)})`;

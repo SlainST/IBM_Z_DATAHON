@@ -145,7 +145,8 @@ def handle(tg: Telegram, sn: SafeNet, msg: dict, log=print):
 
 
 def tunnel(port: int) -> subprocess.Popen:
-    proc = subprocess.Popen(["ssh", "-N", "-L", f"{port}:127.0.0.1:8000", "safenet"],
+    proc = subprocess.Popen(["ssh", "-N", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=4",
+                             "-L", f"{port}:127.0.0.1:8000", "safenet"],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(60):
         try:

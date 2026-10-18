@@ -17,6 +17,7 @@ import secrets
 import socket
 import subprocess
 import sys
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -103,20 +104,52 @@ def handler(chat: Chat):
     return Handler
 
 
-def tunnel(port: int) -> subprocess.Popen:
-    """ssh -N -L port:127.0.0.1:8000 safenet, until the port answers."""
-    proc = subprocess.Popen(["ssh", "-N", "-L", f"{port}:127.0.0.1:8000", "safenet"],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    for _ in range(60):
+class Tunnel:
+    """ssh -N -L port:127.0.0.1:8000 safenet with keep-alives, started again within seconds when it drops (an idle
+    connection through a home router can be cut after a few minutes)."""
+
+    def __init__(self, port: int):
+        self.port, self.proc, self.closed = port, None, False
+        if not self._start():
+            self.terminate()
+            sys.exit("The SSH tunnel did not come up. Check `ssh safenet`, or pass --url ... --no-tunnel.")
+        threading.Thread(target=self._watch, daemon=True).start()
+
+    def _up(self) -> bool:
         try:
-            socket.create_connection(("127.0.0.1", port), timeout=0.5).close()
-            return proc
+            socket.create_connection(("127.0.0.1", self.port), timeout=1).close()
+            return True
         except OSError:
-            if proc.poll() is not None:
-                break
+            return False
+
+    def _start(self) -> bool:
+        self.proc = subprocess.Popen(["ssh", "-N", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=4",
+                                      "-L", f"{self.port}:127.0.0.1:8000", "safenet"],
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(60):
+            if self._up():
+                return True
+            if self.proc.poll() is not None:
+                return False
             time.sleep(0.25)
-    proc.terminate()
-    sys.exit("The SSH tunnel did not come up. Check `ssh safenet`, or pass --url ... --no-tunnel.")
+        return False
+
+    def _watch(self):
+        while not self.closed:
+            time.sleep(3)
+            if not self.closed and (self.proc.poll() is not None or not self._up()):
+                if self.proc.poll() is None:
+                    self.proc.terminate()
+                print("SSH tunnel dropped, reconnecting ...", "ok" if self._start() else "failed, retrying", flush=True)
+
+    def terminate(self):
+        self.closed = True
+        if self.proc and self.proc.poll() is None:
+            self.proc.terminate()
+
+
+def tunnel(port: int) -> Tunnel:
+    return Tunnel(port)
 
 
 def main():
