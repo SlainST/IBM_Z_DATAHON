@@ -1,29 +1,29 @@
 # Results
 
 SafeNet measured against the targets of the team's design (`SafeNet_Model_Tasarimi.pdf`, section 9), through the
-code the API runs, on the LinuxONE server (s390x, IBM z17), 18 Oct 2026, with the v4 models, the phrase rules and
-the whole-message score. Nothing measured here was trained on: the test split (37,588 messages), YouTube (3,459
+code the API runs, on the LinuxONE server (s390x, IBM z17), 18 Oct 2026, with the v4 models, the phrase rules,
+the whole-message score and the yellow thresholds tuned on the validation split (`sari_esigi` 0.46, `egitim` 0.44). Nothing measured here was trained on: the test split (37,588 messages), YouTube (3,459
 comment threads), the 124 innocent example sentences of `karistirilabilir_kelimeler.csv`, the 70 gray-zone
 messages, the 1:1 simulation (40 conversations, 80 users) and the team's evaluation set (104 messages × 3
 platforms). Every message is judged as the first message of a new sender; the simulation measures the hidden points.
 
 | Target (PDF section 9) | Measured | Goal | Met |
 |---|---|---|---|
-| Harmful messages caught (test split, `demo_sosyal`) | 85.9 % | ≥ 85 % | yes |
+| Harmful messages caught (test split, `demo_sosyal`) | 86.7 % | ≥ 85 % | yes |
 | False alarms: harmless messages held or blocked (`demo_sosyal`) | 0.6 % | ≤ 5 % | yes |
-| Per source: harmful caught / false alarms | cyberbullying 91 % / 1.8 %, Kaggle 80 % / 3.7 %, Twitter 57 % / 3.8 %, Wikipedia 82 % / 0.3 % | reported | |
-| Unseen platform, YouTube: harmful caught / false alarms | 85.1 % / 17.0 % | reported | |
+| Per source: harmful caught / false alarms | cyberbullying 91 % / 1.8 %, Kaggle 82 % / 3.7 %, Twitter 59 % / 3.8 %, Wikipedia 83 % / 0.3 % | reported | |
+| Unseen platform, YouTube: harmful caught / false alarms | 86.1 % / 17.2 % | reported | |
 | Innocent sentences blocked (duck, Muslim, bullied, Scunthorpe...) | 0 of 124 on every platform | none | yes |
-| Gray zone (conflicting labels) in yellow | 23 % (green 69 %, red 9 %) | most | no |
+| Gray zone (conflicting labels) in yellow | 24 % (green 67 %, red 9 %) | most | no |
 | Category accuracy, human labels (Model 2) | 96.4 % | ≥ 75 % | yes |
 | Time per message, whole analysis on one core (p50 / p99) | 2.3 / 8.1 ms | < 10 ms | yes |
 | 1:1 simulation: restricted, of the users who should be (`demo_sosyal`) | 89 % (24 of 27) | ≥ 90 % | no |
 | 1:1 simulation: restricted, of the others | 11 %, 0 % by harmless messages alone | ≤ 5 % | see below |
 | Bullying conversations where the victim stops getting the bully's messages | 6 of 6 | every one | yes |
-| The team's evaluation set: expected decision given | 310 of 312 (99.4 %) | reported | |
+| The team's evaluation set: expected decision given | 310 of 312 (dev part 183 of 183, test part 127 of 129) | reported | |
 
 Per platform on the test split (harmful caught / harmless held or blocked / harmless censored):
-`demo_sosyal` 85.9 % / 0.6 % / 5.2 %, `demo_okul` 87.8 % / 5.9 % / 1.2 %, `demo_oyun` 83.8 % / 0.6 % / 4.2 %.
+`demo_sosyal` 86.7 % / 0.6 % / 5.6 %, `demo_okul` 87.1 % / 5.2 % / 1.3 %, `demo_oyun` 83.8 % / 0.6 % / 4.2 %.
 1:1 simulation (restricted of those who should be / of the others, by harmless messages alone / bullying
 conversations protected): `demo_sosyal` 89 % / 11 %, 0 % / 6 of 6, `demo_okul` 93 % / 19 %, 2 % / 6 of 6,
 `demo_oyun` 74 % / 6 %, 0 % / 6 of 6.
@@ -33,14 +33,14 @@ conversations protected): `demo_sosyal` 89 % / 11 %, 0 % / 6 of 6, `demo_okul` 9
 Earlier today v3 caught 84.0 % on `demo_sosyal` and the gray zone was 19 % yellow. Two things moved them, measured
 apart on the same test split:
 
-| | v4 + engine (now) | v3 + engine | v3, earlier today | fallback rules + engine |
-|---|---|---|---|---|
-| Harmful caught / false alarms (`demo_sosyal`) | 85.9 % / 0.6 % | 85.2 % / 0.6 % | 84.0 % / 0.6 % | 54.4 % / 0.3 % |
-| `demo_okul`: harmful caught / harmless held or blocked | 87.8 % / 5.9 % | 87.1 % / 5.2 % | 86.3 % / 4.9 % | 54.4 % / 1.9 % |
-| Gray zone in yellow | 23 % | 21 % | 19 % | 1 % |
-| Innocent sentences blocked | 0 | 0 | 0 | 2 |
-| Category accuracy | 96.4 % | 96.4 % | 96.4 % | 79.0 % |
-| The team's evaluation set | 310 of 312 | 310 of 312 | 310 of 312 | 304 of 312 |
+| | now: v4, engine, thresholds 0.46 / 0.44 | v4 + engine | v3 + engine | v3, earlier today | fallback rules + engine |
+|---|---|---|---|---|---|
+| Harmful caught / false alarms (`demo_sosyal`) | 86.7 % / 0.6 % | 85.9 % / 0.6 % | 85.2 % / 0.6 % | 84.0 % / 0.6 % | 54.4 % / 0.3 % |
+| `demo_okul`: harmful caught / harmless held or blocked | 87.1 % / 5.2 % | 87.8 % / 5.9 % | 87.1 % / 5.2 % | 86.3 % / 4.9 % | 54.4 % / 1.9 % |
+| Gray zone in yellow | 24 % | 23 % | 21 % | 19 % | 1 % |
+| Innocent sentences blocked | 0 | 0 | 0 | 0 | 2 |
+| Category accuracy | 96.4 % | 96.4 % | 96.4 % | 96.4 % | 79.0 % |
+| The team's evaluation set | 310 of 312 | 310 of 312 | 310 of 312 | 310 of 312 | 304 of 312 |
 
 - **The engine** (`safenet/engine/analysis.py`, `safenet/ml/rules.py`). Model 1 learned from whole messages but the
   API scores sentences: harm spread over sentences that each look mild ("you! you blocked me worm why!!") was
@@ -60,14 +60,13 @@ the test split was used once per measurement, as before.
 
 ## Where a target is not met
 
-- **Gray zone, 23 % yellow.** Up from 19 %, not most. Of the 70 messages, 55 are tweets that two datasets
+- **Gray zone, 24 % yellow.** Up from 19 %, not most. Of the 70 messages, 55 are tweets that two datasets
   labelled differently, many about a TV cooking show's contestants ("kat needs serious medication", "so
   delusional"); graded labels exist only for Wikipedia, so the tweets are still scored with the confidence of
   their hard labels.
-- **School profile, 5.9 % of harmless messages held.** Up from 4.9 %, with 87.8 % of the harmful ones caught (86.3 %
-  before). On `egitim` yellow is held for a moderator, so catching more also holds more; the PDF's 5 % target is for
-  the default profile. `sari_esigi` 0.45 holds 5.1 % and still catches 86.9 % (`models/README.md`, "Threshold
-  proposals").
+- **School profile, 5.2 % of harmless messages held** (4.9 % with v3), with 87.1 % of the harmful ones caught (86.3 %
+  with v3). On `egitim` yellow is held for a moderator, so catching more also holds more; `sari_esigi` 0.44 (tuned on
+  the validation split) brought it down from 5.9 % at 0.40. The PDF's 5 % target is for the default profile.
 - **Simulation, 89 % of the users who should be restricted.** Unchanged by the models. The three who are not: two
   friends swearing at each other (no banter discount: their word points add up, but not to 70 within a
   conversation) and one troll: of the troll's five messages labelled harmful, most are indirect jabs ("you love

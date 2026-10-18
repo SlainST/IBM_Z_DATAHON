@@ -27,14 +27,14 @@ Her şey LinuxONE sunucusunda, modelin **hiç görmediği** veriyle ölçüldü 
 
 | Hedef | Sonuç | Hedef değer | Tuttu mu |
 |---|---|---|---|
-| Zararlı mesaj yakalama (37,588 test mesajı, sosyal profil) | **85.9 %** | ≥ 85 % | evet |
+| Zararlı mesaj yakalama (37,588 test mesajı, sosyal profil) | **86.7 %** | ≥ 85 % | evet |
 | Masum mesajda yanlış alarm (bekletildi veya engellendi) | 0.6 % | ≤ 5 % | evet |
 | Masum benzer cümleler ("I fed the duck", "I'm a proud Muslim", "Scunthorpe") engellenen | 0 / 124 | hiçbiri | evet |
 | Kategori doğruluğu (insanların verdiği etiketler) | 96.4 % | ≥ 75 % | evet |
 | Mesaj başına süre, p50 / p99 | 2.3 / 8.1 ms | < 10 ms | evet |
 | Zorbalık sohbetlerinde mağdurun zorbanın mesajlarını almaması | 6 / 6 | hepsi | evet |
-| Geliştirici 2'nin değerlendirme seti (104 mesaj × 3 platform) | 310 / 312 | | |
-| Gri bölge (insanların anlaşamadığı 70 mesaj) sarı | 23 % | çoğu | hayır |
+| Geliştirici 2'nin değerlendirme seti (104 mesaj × 3 platform; dev / test kısmı) | 310 / 312 (183/183, 127/129) | | |
+| Gri bölge (insanların anlaşamadığı 70 mesaj) sarı | 24 % | çoğu | hayır |
 | Simülasyon: kısıtlanması gerekenler / gerekmeyenler | 89 % / 11 % | ≥ 90 % / ≤ 5 % | hayır, aşağıda |
 | Yük: 3 vCPU, gerçek mesajlar, concurrency 4 | ~870 mesaj/sn | | |
 
@@ -42,19 +42,19 @@ Her şey LinuxONE sunucusunda, modelin **hiç görmediği** veriyle ölçüldü 
 
 | | Sosyal | Okul | Oyun |
 |---|---|---|---|
-| Engellendi (alıcı hiç görmüyor) | 47.5 % | 52.4 % | 45.8 % |
-| Sansürlendi veya moderatöre bekletildi | 38.4 % | 35.4 % | 38.0 % |
-| **Toplam yakalanan** | **85.9 %** | **87.8 %** | **83.8 %** |
-| Kaçan (olduğu gibi teslim) | 14.1 % | 12.2 % | 16.2 % |
+| Engellendi (alıcı hiç görmüyor) | 47.5 % | 52.3 % | 45.8 % |
+| Sansürlendi veya moderatöre bekletildi | 39.2 % | 34.8 % | 38.0 % |
+| **Toplam yakalanan** | **86.7 %** | **87.1 %** | **83.8 %** |
+| Kaçan (olduğu gibi teslim) | 13.3 % | 12.9 % | 16.2 % |
 
-Kaynağa göre yakalanan (sosyal): cyberbullying 90.7 %, Wikipedia 81.5 %, Kaggle 80.5 %, Twitter 57.0 %.
+Kaynağa göre yakalanan (sosyal): cyberbullying 91 %, Wikipedia 83 %, Kaggle 82 %, Twitter 59 %.
 
 **Doğru kategori:** Model 2, insanların kategori verdiği zararlı mesajlarda 96.4 % doğru (race 99.3 %, religion
 97.0 %, gender 93.1 %, insult 90.5 %). API'nin sarı ya da kırmızı işaretleyip yazdığı kategori 90.4 % doğru. Seyrek
 kategoriler zayıf: sexual 65.5 %, threat 60.4 % (açık tehdit ve cinsel taleplerde kategoriyi kurallar koyuyor).
 
-**Karşılaştırma** (aynı motor, aynı test): v4 modelleri 85.9 %, v3 modelleri 85.2 %, modelsiz yedek kurallar
-(fallback) 54.4 %. Bugün sabah, bu iyileştirmelerden önce: 84.0 %. Ayrıntılar ve tutmayan hedeflerin nedenleri:
+**Karşılaştırma** (aynı test): bugünkü son hâl 86.7 %; aynı motor eski eşiklerle v4 85.9 %, v3 85.2 %, modelsiz yedek
+kurallar (fallback) 54.4 %. Bugün sabah, bu iyileştirmelerden önce: 84.0 %. Ayrıntılar ve tutmayan hedeflerin nedenleri:
 [`safenet/docs/RESULTS.md`](safenet/docs/RESULTS.md).
 
 ## Nasıl karar veriyor
@@ -123,9 +123,14 @@ Ayrıntı: [`safenet/models/README.md`](safenet/models/README.md).
   sunucu rehberi (`safenet/deploy/README.md`).
 - **API:** cevapların dokümante modelleri ve JSON Schema'ları (`safenet/schemas/`), `/health`'te model sürümü.
   API sözleşmesi (alanlar, tipler) değişmedi.
+- **SlainST'in branch'inden (`claude/full-integration-v3`, bu branch'in üstüne kurulmuştu):** değerlendirme setinin
+  dev/test ayrımı, `models_dev` ve `measure.py --dev`, validation'da ayarlanmış sarı eşikleri (varsayılan 0.46, okul
+  0.44), "h e l l o" düzeltmesi, 🖕, çocukların kendine zarar argosu ("unalive yourself", "go drink bleach").
+- **Geliştirici 2'nin branch'inden:** önbellekte mesaj metni tutulmuyor (yıldızlı metin her cevapta yeniden
+  yapılıyor), spam sayıları `ayarlar.toml`'da, Windows laptop'larda kurulum.
 - **Diğer:** GitHub Actions ile testler, kullanılmayan v0.1 prototip modülleri silindi, dokümanlar güncellendi.
 
-Testler: lokalde 149 geçti (7 model testi model dosyası olmadan atlanır), sunucuda v4 modelleriyle 156 geçti.
+Testler: lokalde 168 geçti (7 model testi model dosyası olmadan atlanır), sunucuda v4 modelleriyle 175 geçti.
 Veritabanı şeması ve paketler değişmedi.
 
 ## Kimin ne yapması gerekiyor
@@ -136,8 +141,9 @@ Veritabanı şeması ve paketler değişmedi.
 
 ### Geliştirici 2 (kurallar, ayarlar, testler)
 Ölçülmüş öneriler; `ayarlar.toml` sadece senin dosyan, karar senin:
-- [ ] **Okul profili `sari_esigi` 0.40 → 0.45:** masum mesajlarda bekletme 5.9 % → 5.1 %, zararlı yakalama 87.8 % → 86.9 %.
-- [ ] **Sosyal profil:** daha önce önerilen 0.45'e gerek kalmadı; 0.50 ile hedef tutuyor.
+- [x] **Sarı eşikleri:** validation'da ayarlandı ve uygulandı: varsayılan 0.46, okul 0.44 (test: sosyal 86.7 %
+      yakalama; okulda masum bekletme 5.2 %).
+- [x] **Spam sayıları** `ayarlar.toml`'a taşındı (`spam_link_sayisi`, `spam_tekrar_sayisi`, `spam_tekrar_orani`).
 - [ ] **1:1'de tek mesajın puanı:** kimlik içeren tek bir kırmızı mesaj 25 + 30 × 1.5 = 70 puanla gönderenini anında
       kısıtlıyor; simülasyonda haksız kısıtlanan 6 kişinin 3'ü böyle. Tehdit dışındaki tek bir mesaja üst sınır
       konursa "kısıtlanmaması gerekenler" 11 %'den hedefe (≤ 5 %) yaklaşabilir. `python simulate.py --users` ile ölçün.

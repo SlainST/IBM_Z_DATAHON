@@ -111,7 +111,12 @@ by less than 0.001; graded labels moved the harmful messages caught by +0.6 to +
 Wikipedia comments (30-70 % of annotators) in yellow from 20 % to 23 %. The whole-message score added about one
 point more.
 
-## Threshold proposals (for `ayarlar.toml`, Developer 2)
+## Thresholds
+
+Applied: `sari_esigi` 0.46 by default and 0.44 on `egitim`, tuned on the validation split with the models fit
+without it (`measure.py --dev`, never the test split; 0.46 is also the best-F1 threshold `train.py` proposes). On
+the test split, v4: `demo_sosyal` 86.7 % caught, 0.6 % held or blocked; `demo_okul` 87.1 % caught, 5.2 % held.
+The sweep below (test split) is what the earlier proposals were based on.
 
 Measured on the test split through the API's path, v4 with the rules and the whole-message score:
 
