@@ -14,9 +14,9 @@ cannot do well on its own:
    model still scores "i'm gay i love men" 0.68 and "she's the first black woman to win that award" 0.93; it
    blocked "Racism has no place in sports." When a sentence only mentions an identity (no slur, no "you muslim",
    no claim about the whole group, no hostile word, no rule, no listed word), or names a harm without being
-   addressed to the reader ("racism", "bullying": "i was bullied at school"), it is scored once more without
-   those words and keeps the lower score: the mere mention of an identity adds nothing (ayarlar.toml), talking
-   about bullying is not bullying, and an attack keeps its score.
+   addressed to the reader ("racism", "bullying": "i was bullied at school"; "some kids keep calling me fat and
+   ugly"), it is scored once more without those words and keeps the lower score: the mere mention of an identity
+   adds nothing (ayarlar.toml), talking about bullying is not bullying, and an attack keeps its score.
 
 Every pattern was checked on veri/birlesik_veri.csv: precision on the training split (share of matched messages
 that are labelled harmful) and how often it fires on harmless messages (models/README.md, "Rules"). Patterns
@@ -61,12 +61,22 @@ THREAT = [
     _FIRST + r"(break|snap|smash|crack|bust)\s+(your|ur|ya)\s+"
              r"(legs?|arms?|neck|face|teeth|nose|jaw|skull|bones|ribs|fingers|knees?)\b",
     _FIRST + r"(find|catch|get)\s+(you|u|ya)\s+(and\s+|then\s+)?(\w+\s+)?(kill|murder|stab|hurt|beat|punch|shoot)\b",
+    _FIRST + r"(hunt|track)\s+(you|u|ya)\s+down\s+(and\s+|then\s+)?(\w+\s+)?"
+             r"(kill|murder|stab|hurt|beat|punch|shoot|rape)\b",
     _FIRST + r"(beat|smack|mess|rough|fuck)\s+(you|u|ya)\s+up\b",
     r"\b(hope|wish)\s+(you|u)\s+(\w+\s+){0,2}(die|dies|get raped|get killed|get cancer|burn|rot|suffer)\b",
     r"\b(you|u)('re| are| r)?\s*(gonna|going to|will)\s+(get|be)\s+(raped|killed|shot|stabbed|beaten|murdered|hurt)\b",
     r"\b(you'?re|you are|ur|u r)\s+(so\s+)?dead\b(?!\s+(wrong|on|right|serious|set|tired|last|center|inside|to me))",
     r"\b(go die|die in a fire|watch your back|i know where you live|dead meat)\b",
     r"\bdrop dead\b(?!\s+(gorgeous|beautiful|date|deadline|funny|sexy|hot|serious|simple|easy|good|perfect|fast))",
+    # implicit: no violent verb, but something is going to happen to the reader (7 of the 10 training messages they
+    # match are labelled harmful, 2 of the other 3 are threats too; "regret" and "see what happens" are not in the data)
+    _FIRST + r"make\s+(your|ur)\s+life\s+(a\s+)?(living\s+)?(hell|nightmare|misery|miserable)\b",
+    r"\b(you'?ll|you will|you'?re (gonna|going to)|you are (gonna|going to)|ur (gonna|going to))\s+(\w+\s+)?regret\s+"
+    r"(coming|saying|messing|talking|crossing|ever|the day|being born|what you)\b",
+    r"\b(keep (talking|it up)|say (that|it) again|try me)\b[^.!?]{0,20}\b(and|then)\s+(see|watch)\s+what\s+happens\b",
+    r"\b(your|ur)\s+days\s+are\s+numbered\b|\bsleep with one eye open\b|"
+    r"\bi\s+know\s+where\s+(you|u)\s+(go to school|work|sleep|study)\b",
 ]
 SELF_HARM = [
     r"\b(kys|kill (your|ur) ?self|kill urself|hang (your|ur) ?self|end (your|ur) life|slit (your|ur) wrists?)\b",
@@ -163,8 +173,10 @@ def identity_attack(identity: dict) -> bool:
 
 # ---- identity mentions -------------------------------------------------------------------------------------
 _IDENTITY = re.compile(r"\b(?:" + "|".join(f"(?:{v})" for v in kimlik.GRUPLAR.values()) + r")\b")
-# "you muslim", "you're such a girl", "you are gay", "your just a homosexual": the identity as a label for the reader
-_LABEL = re.compile(r"\b(you|u|ya)\s+(?:" + _IDENTITY.pattern + r")|\b(you'?re|youre|you are|ur|u r)\s+"
+# "you muslim", "u flippin homosexual", "you're such a girl", "you are gay", "your just a homosexual": the identity
+# as a label for the reader
+_LABEL = re.compile(r"\b(you|u|ya)\s+((fucking|fuckin|flipping|flippin|freaking|freakin|frigging|friggin|bloody|damn|"
+                    r"damned|little)\s+)?(?:" + _IDENTITY.pattern + r")|\b(you'?re|youre|you are|ur|u r)\s+"
                     r"(a\s+|an\s+|such\s+a\s+|so\s+|such\s+|just\s+a\s+)?(\w+\s+)?(?:" + _IDENTITY.pattern + r")"
                     r"|\byour\s+(just\s+)?(a|an|such a)\s+(\w+\s+)?(?:" + _IDENTITY.pattern + r")")
 # "women will never...", "muslims always...", "gays should...": a claim about a whole group
@@ -176,7 +188,7 @@ _CLAIM = re.compile(r"(?:" + _IDENTITY.pattern + r")\s+(will|won'?t|wont|can|can
 HOSTILE = re.compile(
     r"\b(hate[sd]?|hatred|hating|despise[sd]?|can'?t stand|cant stand|sick of|tired of|disgust\w*|gross|dirty|filth\w*|"
     r"smelly|stinks?|ugly|fat|stupid|dumb|idiots?|morons?|fools?|retard\w*|ignorant|brainwashed|lazy|inferior\w*|"
-    r"subhuman|evil|vile\w*|barbaric|savages?|primitive|backwards?|violent|violence|animals?|monkeys?|apes?|pigs?|"
+    r"subhuman|evil|vile\w*|barbar\w*|savages?|primitive|backwards?|violent|violence|animals?|monkeys?|apes?|pigs?|"
     r"dogs|rats|vermin|cockroach\w*|parasites?|scum|trash|garbage|cancer|plague|disease|criminals?|thieves|liars?|"
     r"lying|hypocrit\w*|rapists?|rape\w*|pedophil\w*|paedophil\w*|perverts?|degenerates?|freaks?|abomination\w*|"
     r"terror\w*|extremis\w*|radical\w*|jihad\w*|islamis\w*|invad\w*|invasion|infest\w*|ruin\w*|destroy\w*|genocide|"
@@ -187,10 +199,13 @@ HOSTILE = re.compile(
     r"that'?s gay|thats gay)\b")
 
 
-# Words that name a harm instead of doing it: "racism has no place in sports", "i was bullied at school"
+# Words that name a harm instead of doing it: "racism has no place in sports", "i was bullied at school", and the
+# names a victim reports being called: "some kids keep calling me fat and ugly"
 TOPIC = re.compile(r"\b(racism|racist|racists|sexism|sexist|sexists|homophob\w*|transphob\w*|islamophob\w*|"
                    r"antisemit\w*|misogyn\w*|xenophob\w*|discriminat\w*|bully|bullies|bullied|bullying|cyberbully\w*|"
-                   r"hate speech|hate crimes?)\b")
+                   r"hate speech|hate crimes?)\b"
+                   r"|\b(they|he|she|people|everyone|everybody|kids|some \w+|the \w+|my \w+|other \w+)\s+"
+                   r"((keep|keeps|kept|always|still)\s+)?(call|calls|called|calling)\s+me\s+(a\s+|an\s+)?\w+(\s+and\s+\w+)?")
 # "i'm not sexist but...", "call me racist, but...": the disclaimer that opens prejudice (116 of the 132 harmful
 # test messages a topic-word rescoring let through); with it nothing is taken out of the sentence
 DISCLAIMER = re.compile(r"\b(not|n'?t|never|call me|calling me|am i|i'?m no)\s+(\w+\s+)?(a\s+)?"

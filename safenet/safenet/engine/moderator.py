@@ -64,7 +64,7 @@ class Moderator:
         harmful = verdict.colour in ("yellow", "red")
         stored = {
             "decision": decision, "reason": reason, "colour": verdict.colour, "worst": worst,
-            "harm": s.harm, "wordless_harm": s.wordless, "category": s.category if harmful else None,
+            "harm": max(s.harm, s.context), "wordless_harm": s.wordless, "category": s.category if harmful else None,
             "sender_standing": {"level": pts.level(user, a, now), "change": change, "restrictions": user["restrictions"],
                                 "restricted_until": user["restricted_until"].isoformat() if user["restricted_until"] else None},
             "relation": None if rel is None else {"blocked": pts.relation_blocked(rel, a), "change": rel_change},

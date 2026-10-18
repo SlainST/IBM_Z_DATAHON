@@ -28,6 +28,7 @@ class Sentence:
     quoted: bool
     key_words: list = field(default_factory=list)
     rule: str | None = None   # the kind of rules.py rule that set the score: threat, bullying, sexual...
+    context: float = 0.0      # the whole message's harm, on its worst sentence only: can make it yellow, never red
 
 
 @dataclass
@@ -127,7 +128,18 @@ class Analyzer:
                           len(prepared)))
             prepared += texts
 
+        # Model 1 learned from whole messages: harm spread over sentences that each look mild ("you! you blocked
+        # me worm why!!") shows only in the whole. Not for a message that quotes someone or has a likely typo.
+        whole, whole_at = None, len(prepared)
+        if len(parts) > 1 and not any(p[6] or p[3] for p in parts):
+            whole = temizlik.temizle(tx.without_game_words(text, text) if game_words_free else text)
+            addressed = temizlik.hedefli_mi(text)
+            whole_identity = kimlik.kimlik_analizi(whole, hedefli=addressed)
+            take = (False, False) if rules.find(whole) else rules.mentions(whole, whole_identity, bool(hits), addressed)
+            prepared += [whole] + ([rules.without(whole, *take)] if any(take) else [])
+
         scores = self.models.harm(prepared)
+        context = min(scores[whole_at:]) if whole is not None else 0.0
         sentences = []
         for sp, raw, mine, typos, clean, identity, is_quoted, found, found_wordless, mention, at in parts:
             harm, wordless = scores[at], scores[at + 1]
@@ -143,5 +155,12 @@ class Analyzer:
             sentences.append(Sentence(sp.start, sp.end, harm, wordless, category, mine, typos, identity, is_quoted,
                                       _key_words(clean, counted, rule), rule.rule.kind if rule else None))
 
+        worst = max(sentences, key=lambda s: s.harm, default=None)
+        if worst is not None and context > worst.harm:
+            if worst.category is None and context >= CATEGORY_MIN:
+                worst.category = self.models.category(whole)
+            if worst.category == "insult" and worst.rule is None and not rules.identity_attack(worst.identity):
+                context = min(context, rules.INSULT_CAP)
+            worst.context = context
         return Analysis(sentences, hits, profanity.word_count(text, hits), tx.spam(text), profanity.star(text, hits))
 

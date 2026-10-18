@@ -29,11 +29,12 @@ POST /v1/check  ──X-API-Key────────────► uvicorn w
    `sosyal_medya`, `egitim`, `oyun`, `kurumsal`).
 2. Listed profanity is found in the text as sent, disguises included (`f*ck`, `sh1t`, `f u c k`, Cyrillic
    look-alikes, `kys`), and starred: `f***`.
-3. The message is split into sentences; the worst sentence decides for the whole message.
+3. The message is split into sentences; the worst sentence decides for the whole message. The whole message is
+   scored too, so harm spread over mild-looking sentences makes it yellow (never red).
 4. Model 1 scores each sentence and the sentence without its listed words ("wordless"): "fuck, I missed the bus"
    is profanity, "fuck you, nobody likes you" is malice. Model 2 names the category.
-5. The phrase rules adjust the scores: explicit threats, severe bullying, sexual requests and xenophobia are
-   lifted, a plain insult is capped at yellow, an identity only mentioned ("I'm a proud Muslim") adds nothing.
+5. The phrase rules adjust the scores: threats (explicit, and common implicit phrasings like "you'll regret
+   coming to school tomorrow"), severe bullying, sexual requests and xenophobia are lifted, a plain insult is capped at yellow, an identity only mentioned ("I'm a proud Muslim") adds nothing.
 6. Colour: red (threat, hate, very harmful, profanity in more than 30 % of the words, spam) → block; yellow →
    censor, or hold on the school profile; green → allow, or censor when it has profanity. A quoted threat
    ("he told me ...") is held, so a victim reporting it isn't silenced.
@@ -116,8 +117,8 @@ three agree. Every change goes in with the tests green.
 ## Known limits
 
 - English only, like the training data.
-- Implicit threats ("keep talking and see what happens") are missed: a word-based model knows the phrasings it
-  has seen; the phrase rules cover the explicit ones.
+- Implicit threats beyond the common phrasings the rules know ("i know your address and i am coming over
+  tonight") are missed: a word-based model knows the phrasings it has seen.
 - Long texts: the worst sentence decides, so a long thread with one bad sentence is blocked.
 - Only one-to-one messages are in scope (PDF section 1); without `recipient_id` only the sender is scored.
   Group and live-stream settings (`[kanal.*]`) are in `ayarlar.toml` for the next stage.

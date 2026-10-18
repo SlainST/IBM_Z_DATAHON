@@ -25,6 +25,12 @@ def kind(text: str) -> str | None:
     ("i hope you die", "threat"),
     ("watch your back", "threat"),
     ("i'm going to hurt you after school", "threat"),
+    ("i will hunt you down and kill you", "threat"),
+    ("you are going to regret coming to school tomorrow", "threat"),
+    ("keep talking and see what happens to you", "threat"),
+    ("i'm gonna make your life a living hell", "threat"),
+    ("your days are numbered", "threat"),
+    ("I know where you go to school", "threat"),
     ("kys", "self_harm"),
     ("you should just die", "self_harm"),
     ("send me your address or I'll post your pics everywhere", "blackmail"),
@@ -49,7 +55,8 @@ def test_catches(text, expected):
     "i will never hurt you", "i'm not going to kill you", "we had a drop dead gorgeous view",
     "it would be better if you explained the change", "go back to your room", "i want to go back to china next year",
     "not all muslims are terrorists", "send me a pic of you in paris", "clean your room or i'll tell mom",
-    "i'm going to kill it at the exam tomorrow",
+    "i'm going to kill it at the exam tomorrow", "i'll get the kill next round", "gg, i will hunt you down next round",
+    "you'll regret not trying this cake", "try it and see what happens", "the old printer's days are numbered",
 ])
 def test_leaves_alone(text):
     assert kind(text) is None
@@ -76,7 +83,9 @@ def test_identity_attack():
     ("my best friend is gay", True),
     ("i hate muslims", False),             # a hostile word
     ("you muslim", False),                 # the identity as a label for the reader
+    ("thanks u flippin homosexual", False),
     ("you're such a girl", False),
+    ("the barbarity of islam", False),     # a hostile word
     ("muslims are everywhere", False),     # a claim about the whole group
     ("that's so gay", False),              # pejorative use
     ("see you tomorrow", False),           # no identity at all
@@ -103,6 +112,8 @@ def test_without_identity():
     ("islam is a religion of bigotry", False, (False, False)),      # an identity that may be attacked
     ("i'm gay and i hate homophobia", False, (False, False)),       # "hate" keeps the identity's part
     ("my gay friend was bullied", False, (True, True)),
+    ("some kids keep calling me fat and ugly", False, (False, True)),   # a victim reports names
+    ("you keep calling me fat and ugly", True, (False, False)),
     ("see you tomorrow", True, (False, False)),
     ("i'm not sexist but women just shouldn't be announcers", False, (False, False)),   # the disclaimer
     ("call me racist, but racism isn't real", False, (False, False)),

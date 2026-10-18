@@ -173,3 +173,31 @@ def test_parallel_messages_from_one_sender_all_count(mod, uid):
     with ThreadPoolExecutor(5) as pool:
         list(pool.map(lambda i: mod.check("demo_sosyal", msg(uid, "f*ck, I missed the bus", recipient=f"r{i}")), range(5)))
     assert mod.store.user("demo_sosyal", uid("g"), uid("a"))["points"] == 45.0
+
+
+class _WholeOnly:
+    """Model 1 that finds harm only in the whole message, never in one of its short sentences."""
+    classes_ = [0, 1]
+
+    def predict_proba(self, texts):
+        import numpy as np
+        return np.array([[0.4, 0.6] if len(t) > 20 else [0.9, 0.1] for t in texts])
+
+
+class _Insult:
+    def predict(self, texts):
+        return ["insult"] * len(texts)
+
+
+def test_harm_spread_over_sentences_is_yellow_never_red(store, uid):
+    from safenet.engine.moderator import Moderator
+    from safenet.ml.models import Models
+    models = Models()
+    models.model1, models.model2 = _WholeOnly(), _Insult()
+    mod = Moderator(store, models=models)
+    r = mod.check("demo_sosyal", msg(uid, "you blocked me. you worm."))
+    assert (r["decision"], r["reason"], r["category"]) == ("censor", "harmful", "insult")
+    assert (r["harm"], r["wordless_harm"]) == (0.6, 0.1)
+    assert mod.check("demo_okul", msg(uid, "you blocked me. you worm.", sender="c"))["decision"] == "hold"
+    # a victim's report is judged sentence by sentence only
+    assert mod.check("demo_sosyal", msg(uid, "he said i am a worm. i cried.", sender="d"))["decision"] == "allow"

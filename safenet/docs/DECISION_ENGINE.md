@@ -29,11 +29,13 @@ output into the `harm`, `wordless_harm` and `category` the colours above are com
 
 | What | Effect | Why |
 |---|---|---|
-| Explicit threat, self-harm encouragement, blackmail ("i'll break your legs", "kys", "or i'll post your pics") | harm ≥ 0.95, category threat | ~480 threats in the data: phrasings it never saw scored low |
+| Threat, explicit or in a common implicit phrasing, self-harm encouragement, blackmail ("i'll break your legs", "you'll regret coming to school tomorrow", "kys", "or i'll post your pics") | harm ≥ 0.95, category threat | ~480 threats in the data: phrasings it never saw scored low |
 | Severe bullying, sexual request, xenophobia, a group called vermin or criminals | harm ≥ 0.92, that rule's category | red on every profile: "nobody likes you", "send me a pic of you in your underwear", "go back to your country" |
 | A plain insult (Model 2: insult, no rule, no identity attacked) | harm ≤ 0.72 | yellow on every profile, never red by itself |
 | An identity only mentioned (no slur, no "you muslim", no claim about the whole group, no hostile word) | scored again without the identity words; the lower score is kept | "i'm gay i love men" scored 0.68, "she's the first black woman to win that award" 0.93 |
+| Not addressed to the reader: a harm named ("racism has no place in sports", "i was bullied") or names reported ("some kids keep calling me fat and ugly") | scored again without those words; the lower score is kept | a victim asking for help isn't held |
 | What the sender reports ("she told me ...") | only threats keep their floor (and are held as quoted threats) | a victim quoting a bully isn't blocked |
+| Harm spread over sentences ("you! you blocked me worm why!!": each sentence alone looks mild) | the whole message is scored too (identity mentions as above); its harm can make the message yellow, never red | Model 1 learned from whole messages; not for a message that reports someone or has a likely typo |
 
 Each pattern was checked on the training split (precision of the matched messages, how often it fires on
 harmless ones); the numbers are in `models/README.md`. Tests: `tests/test_rules.py`, `tests/test_check.py`.
@@ -45,7 +47,7 @@ Each sentence is judged; the worst one decides for the whole message, even if th
 | Colour | When (any sentence) | Decision |
 |---|---|---|
 | RED | threat and harm ≥ `tehdit_esigi`; or race / religion / gender and wordless ≥ `nefret_esigi`; or wordless ≥ `cok_kotu_esigi`; or more than `spam_kufur_orani` of the message's words are listed profanity; or spam | `block` |
-| YELLOW | harm ≥ `sari_esigi` | `censor`, or `hold` when the profile says `sari_davranis = "beklet"` |
+| YELLOW | harm ≥ `sari_esigi`, or the whole message's harm ≥ `sari_esigi` | `censor`, or `hold` when the profile says `sari_davranis = "beklet"` |
 | GREEN | everything else | `allow`, or `censor` when it contains profanity |
 
 Quote protection: a threat inside quotes or passed on ("he told me ...", "she keeps saying ...") is held for

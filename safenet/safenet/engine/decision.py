@@ -2,7 +2,7 @@
 
 RED    threat and harm >= tehdit_esigi; race / religion / gender and wordless >= nefret_esigi;
        wordless >= cok_kotu_esigi; spam; or more than spam_kufur_orani of the words are listed profanity
-YELLOW harm >= sari_esigi
+YELLOW harm >= sari_esigi, or the whole message's harm >= sari_esigi (Sentence.context: never red by itself)
 GREEN  everything else
 """
 from dataclasses import dataclass
@@ -63,7 +63,7 @@ def judge(analysis: Analysis, a: dict) -> Verdict:
             return Verdict("red", "hold", "quoted_threat", i, True, hits, False)
         return Verdict("red", "block", reason, i, False, hits, False)
 
-    yellow = [(-s.harm, i) for i, s in enumerate(analysis.sentences) if s.harm >= m["sari_esigi"]]
+    yellow = [(-s.harm, i) for i, s in enumerate(analysis.sentences) if max(s.harm, s.context) >= m["sari_esigi"]]
     if yellow:
         i = min(yellow)[1]
         decision = "hold" if m["sari_davranis"] == "beklet" else "censor"
