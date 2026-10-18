@@ -1,4 +1,4 @@
-"""safenet/pipeline: game words in context, spam, listed phrases written out."""
+"""safenet/pipeline: game words in context, spam, listed phrases written out, what the models read."""
 import pytest
 
 from safenet.pipeline import profanity, text as tx
@@ -45,3 +45,13 @@ def test_listed_phrase_written_out(message, written):
 def test_phrases_with_a_listed_word_are_found_through_the_word():
     assert [h.word for h in profanity.find("what the fuck")] == ["fuck"]
     assert "what the fuck" not in {p for _, p in profanity.phrases()}
+
+
+@pytest.mark.parametrize("clean, read", [
+    ("the kids began to snigger at the joke.", "the kids began to at the joke."),   # a slur's letters inside
+    ("a raccoon got into the trash", "a got into the trash"),
+    ("our class went on a field trip", "our class went on a field trip"),         # "ass" inside: not a slur
+    ("you are a nigger", "you are a nigger"),                                     # the slur itself stays
+])
+def test_models_do_not_read_words_that_carry_a_slur(clean, read):
+    assert tx.for_models(clean) == read

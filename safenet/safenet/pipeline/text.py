@@ -5,6 +5,8 @@ from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 
+import kimlik
+
 from ..config import ROOT
 
 CLUE_DISTANCE = 6   # a context clue counts within this many words of the listed word
@@ -87,6 +89,23 @@ def without_game_words(sentence: str, message: str) -> str:
         if words & clues or any(s in lowered for s in signs):
             sentence = pattern.sub(" ", sentence)
     return sentence
+
+
+@lru_cache(maxsize=1)
+def _slur_carriers() -> re.Pattern | None:
+    """The kelime_icinde_kufur rows whose hidden word is one of kimlik.py's slurs: "snigger", "raccoon", "spicy"."""
+    slur = re.compile(r"^(?:" + "|".join(kimlik.HAKARETLER.values()) + r")$")
+    words = [r["kelime"] for r in confusables()
+             if r["kategori"] == "kelime_icinde_kufur" and slur.match(r["karistirilan"])]
+    return re.compile(r"\b(?:" + "|".join(map(re.escape, words)) + r")\w*", re.I) if words else None
+
+
+def for_models(clean: str) -> str:
+    """What the models read. Character n-grams can't tell "snigger" from the slur inside it (Model 1: 0.66 for
+    "the kids began to snigger at the joke", 0.08 without the word), so an ordinary word that carries a slur is
+    taken out; the rules and the identity analysis still read the sentence as written."""
+    carriers = _slur_carriers()
+    return re.sub(r"\s+", " ", carriers.sub(" ", clean)).strip() if carriers else clean
 
 
 _QUOTED = re.compile(r"[\"“”«»„]([^\"“”«»„]{3,})[\"“”«»„]")

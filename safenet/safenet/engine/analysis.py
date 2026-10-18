@@ -138,7 +138,7 @@ class Analyzer:
             take = rules.mentions(whole, kimlik.kimlik_analizi(whole, hedefli=addressed), bool(hits), addressed)
             prepared += [whole] + ([rules.without(whole, *take)] if any(take) else [])
 
-        scores = self.models.harm(prepared)
+        scores = self.models.harm([tx.for_models(t) for t in prepared])
         context = min(scores[whole_at:]) if whole is not None else 0.0
         sentences = []
         for sp, raw, mine, typos, clean, identity, is_quoted, found, found_wordless, mention, at in parts:
@@ -151,14 +151,14 @@ class Analyzer:
             if typos and len(counted) == 0:
                 harm = wordless      # only a likely typo: judged without it (PDF decision 20)
             harm, wordless, category, rule = _calibrate(harm, wordless, found, found_wordless, identity,
-                                                        lambda clean=clean: self.models.category(clean))
+                                                        lambda clean=clean: self.models.category(tx.for_models(clean)))
             sentences.append(Sentence(sp.start, sp.end, harm, wordless, category, mine, typos, identity, is_quoted,
                                       _key_words(clean, counted, rule), rule.rule.kind if rule else None))
 
         worst = max(sentences, key=lambda s: s.harm, default=None)
         if worst is not None and context > worst.harm:
             if worst.category is None and context >= CATEGORY_MIN:
-                worst.category = self.models.category(whole)
+                worst.category = self.models.category(tx.for_models(whole))
             if worst.category == "insult" and worst.rule is None and not rules.identity_attack(worst.identity):
                 context = min(context, rules.INSULT_CAP)
             worst.context = context
