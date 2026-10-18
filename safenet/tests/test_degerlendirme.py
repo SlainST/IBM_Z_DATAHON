@@ -25,3 +25,14 @@ def test_every_platform_has_every_decision():
     rows = oku()
     for p in PLATFORMLAR:
         assert {r[p] for r in rows} == set(KARARLAR), p
+
+
+def test_dev_and_test_parts_are_fixed_and_cover_every_kind():
+    from degerlendir import bolumler, sec
+    rows = oku()
+    parts = bolumler(rows)
+    assert parts == bolumler(list(reversed(rows)))           # the order of the file does not move a row
+    assert set(parts.values()) == {"dev", "test"}
+    assert len(sec(rows, "dev")) + len(sec(rows, "test")) == len(rows)
+    kinds = {r["tur"] for r in rows}
+    assert {r["tur"] for r in sec(rows, "dev")} == kinds

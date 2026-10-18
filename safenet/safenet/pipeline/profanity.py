@@ -48,6 +48,9 @@ def _plain(core: str) -> str:
 
 
 def _lookup(core: str) -> tuple[str, bool] | None:
+    emoji = temizlik.emoji_kufur(core)
+    if emoji:
+        return emoji, True
     lowered = unicodedata.normalize("NFKC", core).lower()
     plain = _plain(core)
     letters_changed = plain != lowered
@@ -67,18 +70,13 @@ def find(text: str) -> list[Hit]:
     for m in SPACED.finditer(text):
         positions = [m.start() + i for i, c in enumerate(m.group(0)) if c.isalpha()]
         letters = "".join(text[p].lower() for p in positions)
-        done = False
-        for size in range(len(letters), 2, -1):
-            for first in range(len(letters) - size + 1):
-                word = temizlik.ASIL.get(letters[first:first + size])
-                if word:
-                    s, e = positions[first], positions[first + size - 1] + 1
-                    hits.append(Hit(s, e, text[s:e], word, temizlik.SEVIYE.get(word, 5), True))
-                    taken.append((s, e))
-                    done = True
-                    break
-            if done:
-                break
+        found = temizlik.aralikli_kufur(letters)                # "h e l l o" is not "hell": temizlik.ARALIK_*
+        if found:
+            first, size = found
+            word = temizlik.ASIL[letters[first:first + size]]
+            s, e = positions[first], positions[first + size - 1] + 1
+            hits.append(Hit(s, e, text[s:e], word, temizlik.SEVIYE.get(word, 5), True))
+            taken.append((s, e))
 
     for pattern, phrase in phrases():
         for m in pattern.finditer(text):
@@ -118,8 +116,9 @@ def star(text: str, hits) -> str:
 
 
 def word_count(text: str, hits) -> int:
-    """Words in the message, counting a spaced-out word (f u c k) once."""
+    """Words in the message, counting a spaced-out word (f u c k) once and a listed emoji (🖕) as a word."""
     n = sum(1 for t in TOKEN.findall(text) if re.search(r"\w", t))
+    n += sum(1 for h in hits if not re.search(r"\w", h.written))
     for h in hits:
         n -= max(0, len(TOKEN.findall(h.written)) - 1)
     return max(n, 1)

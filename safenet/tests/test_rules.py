@@ -33,6 +33,9 @@ def kind(text: str) -> str | None:
     ("I know where you go to school", "threat"),
     ("kys", "self_harm"),
     ("you should just die", "self_harm"),
+    ("go unalive yourself", "self_harm"),
+    ("neck urself loser", "self_harm"),
+    ("just go drink bleach", "self_harm"),
     ("send me your address or I'll post your pics everywhere", "blackmail"),
     ("do it or i'll tell everyone at school", "blackmail"),
     ("nobody likes you", "bullying"),
@@ -57,6 +60,7 @@ def test_catches(text, expected):
     "not all muslims are terrorists", "send me a pic of you in paris", "clean your room or i'll tell mom",
     "i'm going to kill it at the exam tomorrow", "i'll get the kill next round", "gg, i will hunt you down next round",
     "you'll regret not trying this cake", "try it and see what happens", "the old printer's days are numbered",
+    "my neck hurts after practice", "don't drink bleach, it's poison", "the show used 'unalive' instead of die",
 ])
 def test_leaves_alone(text):
     assert kind(text) is None

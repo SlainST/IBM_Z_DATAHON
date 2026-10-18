@@ -97,3 +97,33 @@ nice -n 10 .venv/bin/python measure.py --markdown docs/RESULTS.md   # the table 
 .venv/bin/python degerlendir.py --hatalar                           # the team's evaluation set
 SAFENET_MODELS_DIR=/an/empty/folder .venv/bin/python measure.py     # the fallback rules
 ```
+
+## Branch claude/full-integration-v3: tuned on dev, measured once on held-out data
+
+Measured on a laptop (x86, Windows), 18 Oct 2026, with a pair trained there by `train.py --hard-labels` (v3
+labels: the raw Wikipedia file is not on the laptop) from `yerel_veri.py`'s data. These numbers compare the
+branch with the code it started from (`6f9896a`), same models, same data; the numbers above stay the server's.
+
+How it was tuned without looking at the test data: the evaluation set is split into a dev part (61 messages) and a
+test part (43) with a fixed seed (`degerlendir.py --bolum`); `train.py` also saves `models_dev/`, the same models fit
+without the validation split; every change was chosen with `SAFENET_MODELS_DIR=models_dev measure.py --dev` (the
+validation split and the dev part only). The test split, YouTube, the simulation and the test part were measured
+once, at the end.
+
+| Held out, measured once | 6f9896a | v3 |
+|---|---|---|
+| Harmful caught / false alarms, `demo_sosyal` (test split) | 85.3 % / 0.7 % | 86.0 % / 0.7 % |
+| `demo_okul`: harmful caught / harmless held or blocked | 87.1 % / 5.7 % | 86.4 % / 5.1 % |
+| `demo_oyun`: harmful caught / false alarms | 83.2 % / 0.7 % | 83.2 % / 0.7 % |
+| YouTube, `demo_sosyal`: harmful caught / false alarms | 84.9 % / 15.3 % | 85.4 % / 15.5 % |
+| Innocent sentences blocked | 0 of 124 | 0 of 124 |
+| 1:1 simulation, `demo_sosyal` / `demo_okul`: restricted of the others | 11 % / 23 % | 11 % / 21 % |
+| The team's evaluation set, test part | 127 of 129 | 127 of 129 |
+
+What changed: the yellow thresholds (`sari_esigi` 0.50 → 0.46 by default, the value `train.py` proposes; `egitim`
+0.40 → 0.44), spaced-out letters ("h e l l o" was read as "hell" and blocked), 🖕 as a listed word, and children's
+self-harm slang ("unalive yourself", "neck yourself", "go drink bleach"). The two evaluation-set misses are the
+same before and after (D039, D098, both `demo_okul`). The p99 time per message on the laptop (~28 ms) is Windows
+scheduling; on the server it was 8.1 ms.
+
+`temizlik.py` changed (spaced letters, 🖕), so retrain the server's models before deploying this branch.

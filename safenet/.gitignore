@@ -5,3 +5,6 @@ __pycache__/
 # Kişisel ayarlar ve anahtarlar: asla yüklenmez
 .vscode/
 *.pem
+models_dev/
+models_sample/
+models/model_info.json

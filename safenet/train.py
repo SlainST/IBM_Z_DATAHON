@@ -56,6 +56,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (average_precision_score, confusion_matrix, f1_score, precision_recall_fscore_support,
                              roc_auc_score)
 from sklearn.model_selection import GroupShuffleSplit
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 
 import augment
@@ -99,10 +100,21 @@ def features(bits: int) -> FeatureUnion:
                          ("chars", branch(analyzer="char_wb", ngram_range=(2, 5)))])
 
 
-def classifier(C: float) -> LogisticRegression:
+# scikit-learn 1.8 dropped liblinear's built-in one-vs-rest: there Model 2 is wrapped in OneVsRestClassifier (the
+# same six binary models), and the sample weights reach them through metadata routing. The server's 1.4 is unchanged.
+WRAP_OVR = tuple(int(x) for x in sklearn.__version__.split(".")[:2]) >= (1, 8)
+if WRAP_OVR:
+    sklearn.set_config(enable_metadata_routing=True)
+
+
+def classifier(C: float, multiclass: bool = False):
     """liblinear: fast on sparse, high-dimensional text features; one-vs-rest for Model 2's six categories.
     (lbfgs needed ~2 s per iteration here for Model 2.)"""
-    return LogisticRegression(C=C, solver="liblinear", max_iter=300)
+    clf = LogisticRegression(C=C, solver="liblinear", max_iter=300)
+    if not WRAP_OVR:
+        return clf
+    clf.set_fit_request(sample_weight=True)
+    return OneVsRestClassifier(clf) if multiclass else clf
 
 
 def no_weights(df: pd.DataFrame):
@@ -158,7 +170,7 @@ def choose_c(name, train, valid, target, weights, score, bits, candidates):
     scores, models = {}, {}
     for C in candidates:
         start = time.time()
-        clf = classifier(C).fit(A, train[target], sample_weight=weights(train))
+        clf = classifier(C, target == "category").fit(A, train[target], sample_weight=weights(train))
         scores[C] = round(float(score(clf, B, valid)), 4)
         models[C] = Pipeline([("features", feats), ("clf", clf)])
         print(f"   {name} C={C}: {scores[C]:.4f} ({elapsed(start)})")
@@ -168,8 +180,9 @@ def choose_c(name, train, valid, target, weights, score, bits, candidates):
 
 def fit_final(train, target, weights, C, bits) -> Pipeline:
     start = time.time()
-    model = Pipeline([("features", features(bits)), ("clf", classifier(C))])
-    model.fit(train[TEXT], train[target], clf__sample_weight=weights(train))
+    model = Pipeline([("features", features(bits)), ("clf", classifier(C, target == "category"))])
+    w = weights(train)
+    model.fit(train[TEXT], train[target], **({"sample_weight": w} if WRAP_OVR else {"clf__sample_weight": w}))
     print(f"   fitted on {len(train)} messages ({elapsed(start)})")
     return model
 
@@ -307,6 +320,13 @@ def main():
     print(f"Done in {report['minutes']} min. Report: {target}")
 
 
+def save(folder: Path, model1, model2, info: dict):
+    folder.mkdir(exist_ok=True)
+    joblib.dump(model1, folder / "model1.joblib", compress=3)
+    joblib.dump(model2, folder / "model2.joblib", compress=3)
+    (folder / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
+
+
 def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     """Steps 2-5: choose C on validation, propose thresholds, fit and save the final pair."""
     synthetic = pd.DataFrame(columns=[TEXT, HARMFUL, "category"])
@@ -360,14 +380,15 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     print(f"5) Final models on the whole training split (Model 1 C={c1}, Model 2 C={c2})")
     model1 = fit_final(train1, HARMFUL, row_weights, c1, bits=20)
     model2 = fit_final(train_fit[train_fit[HARMFUL] == 1], "category", category_weights, c2, bits=19)
-    joblib.dump(model1, out_dir / "model1.joblib", compress=3)
-    joblib.dump(model2, out_dir / "model2.joblib", compress=3)
     info = {"trained": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "machine": platform.machine(), "byteorder": sys.byteorder,
             "python": platform.python_version(), "sklearn": sklearn.__version__, "numpy": np.__version__,
             "model1": {"C": c1, "bits": 20, "soft_labels": soft, "graded_between": list(GRADED_BETWEEN)},
             "model2": {"C": c2, "bits": 19},
             "training_messages": len(train_fit), "synthetic": report.get("augmentation", {}).get("per_kind", {})}
-    (out_dir / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
+    save(out_dir, model1, model2, info)
+    # The pair that never saw the validation split: measure.py --dev tunes rules and thresholds on it
+    save(out_dir.with_name(out_dir.name + "_dev"), model1_valid, model2_valid,
+         {**info, "training_messages": len(inner_fit), "dev": "fit on the inner split; validation is held out"})
     report["files_mb"] = {f.name: round(f.stat().st_size / 1e6, 1)
                           for f in (out_dir / "model1.joblib", out_dir / "model2.joblib")}
     print(f"   saved {report['files_mb']} MB and model_info.json -> {out_dir}")
