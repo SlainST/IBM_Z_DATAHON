@@ -78,17 +78,27 @@ def _game_words() -> list[tuple[re.Pattern, frozenset, tuple]]:
     return out
 
 
-def without_game_words(sentence: str, message: str) -> str:
+def without_game_words(sentence: str, message: str, hits=(), offset: int = 0) -> str:
     """oyun_dili_serbest: a game word ('kill', 'die', 'destroy') is taken out before the models score the
     sentence when the message has one of that word's context clues (karistirilabilir_kelimeler.csv: 'match',
     'round', 'gg'...). "gg, I will kill you next round" is game talk; "I will kill you and your whole family"
-    keeps its words and is judged like on any other platform."""
+    keeps its words and is judged like on any other platform. A game word inside a listed phrase (hits, found in
+    the message; offset = where the sentence starts) stays: "gg noob, go kill yourself" is not game talk."""
     lowered = message.lower()
     words = set(_WORD.findall(lowered))
+    listed = [(h.start - offset, h.end - offset) for h in hits]
+    cut = []
     for pattern, clues, signs in _game_words():
         if words & clues or any(s in lowered for s in signs):
-            sentence = pattern.sub(" ", sentence)
-    return sentence
+            cut += [m.span() for m in pattern.finditer(sentence)
+                    if not any(start < m.end() and m.start() < end for start, end in listed)]
+    out, at = [], 0
+    for start, end in sorted(cut):
+        if start >= at:
+            out.append(sentence[at:start] + " ")
+            at = end
+    out.append(sentence[at:])
+    return "".join(out)
 
 
 @lru_cache(maxsize=1)

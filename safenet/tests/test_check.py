@@ -96,6 +96,14 @@ def test_game_words_free_only_in_game_context(mod, uid):
     assert social["decision"] == "block" and social["reason"] == "threat"
     real = mod.check("demo_oyun", msg(uid, "I will kill you and your whole family", sender="c"))
     assert real["decision"] == "block" and real["reason"] == "threat"
+    fire = mod.check("demo_oyun", msg(uid, "I hope you die in a fire", sender="d"))
+    assert fire["decision"] == "block" and fire["reason"] == "threat"
+
+
+def test_a_listed_phrase_is_never_a_game_word(mod, uid):
+    """"kill" is a game word and "game" is its clue, but in "kill yourself" it is part of a listed phrase."""
+    r = mod.check("demo_oyun", msg(uid, "gg noob, you are so bad at this game, go kill yourself"))
+    assert (r["decision"], r["reason"]) == ("block", "threat") and "kill yourself" in r["key_words"]
 
 
 def test_written_out_kill_yourself_is_starred_like_kys(mod, uid):

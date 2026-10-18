@@ -145,10 +145,11 @@ code on 18 Oct. The evaluation set shows what each choice does to real messages:
    **On `fevzi/integration`, for the team review:** (a) a game word is taken out only when the message has one
    of that word's context clues from `karistirilabilir_kelimeler.csv` ("gg, I will kill you next round" is
    allowed on `demo_oyun`, "I will kill you and your whole family" is blocked there too; `pipeline/text.py`,
-   `without_game_words`); (b) a listed phrase none of whose words is listed ("kill yourself", "kill urself",
-   "kill your self") is found written out, starred and scored 10 like `kys` (`pipeline/profanity.py`,
-   `phrases`). The team test that expected "I will kill you" to be allowed on `demo_oyun` now uses
-   "gg, I will kill you next round".
+   `without_game_words`), and never inside a listed phrase ("gg noob, go kill yourself" keeps its "kill", so
+   it is blocked as self-harm encouragement); (b) a listed phrase none of whose words is listed ("kill
+   yourself", "kill urself", "kill your self") is found written out, starred and scored 10 like `kys`
+   (`pipeline/profanity.py`, `phrases`). The team test that expected "I will kill you" to be allowed on
+   `demo_oyun` now uses "gg, I will kill you next round".
 10. **Spam** has points in the PDF but no rule: 3 or more links, or one word repeated at least 8 times and
     making up more than 60 % of the message.
     **Status: bekliyor.** Checked: the rule is in the code (`pipeline/text.py`, `spam()`), not in

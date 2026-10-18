@@ -107,7 +107,7 @@ class Analyzer:
             raw = text[sp.start:sp.end]
             mine = [h for h in hits if sp.start <= h.start < sp.end]
             typos = [t for h in mine if (t := tx.possible_typo(raw, sp.start, h, min_clues))]
-            scored = tx.without_game_words(raw, text) if game_words_free else raw
+            scored = tx.without_game_words(raw, text, mine, sp.start) if game_words_free else raw
             wordless_raw = _remove(raw, sp.start, mine)
             if game_words_free:
                 wordless_raw = tx.without_game_words(wordless_raw, text)
