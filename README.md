@@ -195,17 +195,16 @@ Sunucuda sadece 3 vCPU var: uzun iş (eğitim, ölçüm) başlatmadan önce ekib
 
 ## Deploy (v4, ekip onayıyla)
 
-**Durum (18 Ekim, 15:09): canlıda bu branch ve v4 modelleri çalışıyor.** Sunucudaki `~/IBM_Z_DATAHON` artık
-`main`'de değil `claude/project-thread-0b7iyw`'de (daf8829); `main`'e dokunulmadı. Canlı kontrol: "see you tomorrow"
-→ `allow`, "you are an idiot" → `censor`, PDF'in tehdit örneği → `block` (Postgres ile).
+**Durum (18 Ekim, 15:33): canlıda `main` ve v4 modelleri çalışıyor.** Sunucudaki `~/IBM_Z_DATAHON` `main`'de
+(6ee7003). Canlı kontrol: "see you tomorrow" → `allow`, "you are an idiot" → `censor`, PDF'in tehdit örneği →
+`block` (Postgres ile).
 
-- Güncelleme: `cd ~/IBM_Z_DATAHON && git pull && systemctl --user restart safenet-api` (artık bu branch'i çeker).
-- Geri almak (v2): `cd ~/IBM_Z_DATAHON && git checkout main && rm -f safenet/models/model_info.json &&
-  cp ~/work/fevzi/models_v2_canli_yedek_20261018_150925/* safenet/models/ && systemctl --user restart safenet-api`
+- Güncelleme: `cd ~/IBM_Z_DATAHON && git pull && systemctl --user restart safenet-api`.
+- v2'ye geri dönmek gerekirse: `rm -f safenet/models/model_info.json && cp
+  ~/work/fevzi/models_v2_canli_yedek_20261018_150925/* safenet/models/ && git checkout 7d2871f` ve restart.
 - v4 modellerinin yedeği: `~/work/fevzi/models_v4_yedek/`.
 
-Ekip bu branch'i `main`'e birleştirdikten sonra canlı klasör `git checkout main && git pull` ile tekrar `main`'e döner.
-Aşağıdaki adımlar o zaman için:
+Modeller değişirse (yeni eğitim) adımlar:
 
 Bugünkü sonuçlar v4 modelleri **ve** bu branch'teki motorla birlikte ölçüldü; sadece model dosyalarını kopyalamak
 aynı sonucu vermez.
