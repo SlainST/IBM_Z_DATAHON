@@ -1,5 +1,10 @@
 # SafeNet: Technical Architecture (v0.2)
 
+> **Historical: the first plan, before the team's design (`SafeNet_Model_Tasarimi.pdf`).** The transformer
+> cascade, Redis, the `/v1/moderate` endpoint and the age profiles below were not built. What SafeNet is now:
+> [README.md](README.md), [docs/DECISION_ENGINE.md](docs/DECISION_ENGINE.md), [docs/API.md](docs/API.md).
+> Kept as the record of the ideas the team weighed.
+
 Real-time text moderation API on IBM LinuxONE (s390x). Target: **p99 < 30 ms** per message
 on the synchronous path.
 

@@ -23,7 +23,7 @@ Any worker on any server gives the same answer: points live in Postgres (`docs/S
 ## Authentication
 
 Every `/v1` call carries the platform's key in the `X-API-Key` header. The key decides the platform, and
-the platform's block in `config/ayarlar.toml` decides the rules: a request never carries settings, a
+the platform's block in `ayarlar.toml` decides the rules: a request never carries settings, a
 profile or a platform id (PDF decision 21).
 
 - New key: `python scripts/new_api_key.py demo_okul`. It prints the key once and stores only its SHA-256
@@ -65,8 +65,8 @@ The answer, on `demo_sosyal` with the fallback rules standing in for the models:
   "recipient_sees": null,
   "reason": "threat",
   "worst_sentence": "But if you show up on Friday I'll f****** break your legs.",
-  "harm": 0.9588,
-  "wordless_harm": 0.9314,
+  "harm": 0.9608,
+  "wordless_harm": 0.951,
   "category": "threat",
   "key_words": ["break your legs", "fucking"],
   "censored": [{"start": 62, "end": 69}],
@@ -100,8 +100,11 @@ Other fields:
   `quoted_threat`, `harmful` (yellow), `profanity`, `sender_restricted`, `relation_blocked`, or null.
 - `worst_sentence`: the sentence that decided, starred; null when allowed. The worst sentence decides for
   the whole message.
-- `harm`: Model 1's score of that sentence; `wordless_harm`: the same sentence without its profanity.
-  "fuck, I missed the bus" has a high `harm` and a low `wordless_harm`.
+- `harm`: the harm score (0-1) of that sentence: Model 1's probability, adjusted by the phrase rules of
+  `safenet/ml/rules.py` (explicit threats at least 0.95; severe bullying, sexual requests and xenophobia at
+  least 0.92; a plain insult at most 0.72, so it is yellow and never red by itself; an identity that is only
+  mentioned does not raise it). `wordless_harm`: the same for the sentence without its listed words: "fuck you,
+  nobody likes you" stays harmful without "fuck", "fuck, I missed the bus" does not.
 - `category`: `insult`, `gender`, `religion`, `race`, `sexual` or `threat`, only for yellow and red.
 - `key_words`: the words and phrases that pushed the score up, only for yellow and red.
 - `censored`: character offsets in `text` of the starred words (Python string indices).
@@ -126,7 +129,7 @@ its own transaction, as if sent one by one, so a later message sees the points o
 | Status | Why | What to do |
 |---|---|---|
 | 401 | No `X-API-Key`, or an unknown key | Fix the key. |
-| 403 | The key's platform has no `[platformlar.<id>]` block in `ayarlar.toml` | Add the block and restart. |
+| 403 | The key's platform has no `[platform.<id>]` block in `ayarlar.toml` | Add the block and restart. |
 | 422 | Body doesn't match: missing field, unknown field, text too long, bad id | `detail` names each field. |
 | 413, 429 | From nginx: body over 2 MB, or the rate limit | Slow down. |
 | 503 + `Retry-After: 1` | Postgres unreachable, too slow or read-only (failover) | Retry with the same `message_id`. |
@@ -139,6 +142,10 @@ What the recipient sees while SafeNet can't answer is the platform's choice; for
 holding the message is the safe one.
 
 ## From a platform adapter (`config.py`)
+
+`client/safenet_client.py` does all of this with the standard library only (retries with the same
+`message_id`, `hold` when SafeNet cannot answer); `client/whatsapp_chat.py` and `client/youtube_comments.py`
+are two adapters built on it. The same in a few lines with `requests`:
 
 ```python
 import time, uuid
