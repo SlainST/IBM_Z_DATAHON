@@ -35,7 +35,7 @@ output into the `harm`, `wordless_harm` and `category` the colours above are com
 | An identity only mentioned (no slur, no "you muslim", no claim about the whole group, no hostile word) | scored again without the identity words; the lower score is kept | "i'm gay i love men" scored 0.68, "she's the first black woman to win that award" 0.93 |
 | Not addressed to the reader: a harm named ("racism has no place in sports", "i was bullied") or names reported ("some kids keep calling me fat and ugly") | scored again without those words; the lower score is kept | a victim asking for help isn't held |
 | What the sender reports ("she told me ...") | only threats keep their floor (and are held as quoted threats) | a victim quoting a bully isn't blocked |
-| Harm spread over sentences ("you! you blocked me worm why!!": each sentence alone looks mild) | the whole message is scored too (identity mentions as above); its harm can make the message yellow, never red | Model 1 learned from whole messages; not for a message that reports someone or has a likely typo |
+| Harm spread over sentences ("you! you blocked me worm why!!": each sentence alone looks mild) | a message of up to 300 characters is scored as a whole too (identity mentions as above); its harm can make the message yellow, never red | Model 1 learned from whole messages; not for a message that reports someone or has a likely typo |
 
 Each pattern was checked on the training split (precision of the matched messages, how often it fires on
 harmless ones); the numbers are in `models/README.md`. Tests: `tests/test_rules.py`, `tests/test_check.py`.

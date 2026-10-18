@@ -104,9 +104,9 @@ Other fields:
   `safenet/ml/rules.py` (explicit threats at least 0.95; severe bullying, sexual requests and xenophobia at
   least 0.92; a plain insult at most 0.72, so it is yellow and never red by itself; an identity that is only
   mentioned does not raise it). When no sentence is yellow by itself but the whole message is (harm spread over
-  sentences: "you! you blocked me worm why!!"), `harm` is the whole message's score; such a message is yellow
-  at most, never red. `wordless_harm`: the same for the sentence without its listed words: "fuck you,
-  nobody likes you" stays harmful without "fuck", "fuck, I missed the bus" does not.
+  sentences: "you! you blocked me worm why!!"; messages up to 300 characters), `harm` is the whole message's
+  score; such a message is yellow at most, never red. `wordless_harm`: the same for the sentence without its
+  listed words: "fuck you, nobody likes you" stays harmful without "fuck", "fuck, I missed the bus" does not.
 - `category`: `insult`, `gender`, `religion`, `race`, `sexual` or `threat`, only for yellow and red.
 - `key_words`: the words and phrases that pushed the score up, only for yellow and red.
 - `censored`: character offsets in `text` of the starred words (Python string indices).
