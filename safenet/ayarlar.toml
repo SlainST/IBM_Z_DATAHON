@@ -27,7 +27,7 @@
 ad = "Varsayılan"
 
 [varsayilan.mesaj]                 # tek bir mesaj için karar
-sari_esigi = 0.50                  # zararlılık bundan yüksekse SARI: küfürler sansürlenerek teslim edilir, gizli puan artar
+sari_esigi = 0.46                  # zararlılık bundan yüksekse SARI: küfürler sansürlenerek teslim edilir, gizli puan artar
 cok_kotu_esigi = 0.85              # bir cümlenin KELİMESİZ puanı bundan yüksekse KIRMIZI: mesajın tamamı engellenir
 tehdit_esigi = 0.60                # kategori "tehdit" ve zararlılık bundan yüksekse KIRMIZI (tehditte daha hassas)
 nefret_esigi = 0.75                # kategori ırk/din/cinsiyet ve kelimesiz puan bundan yüksekse KIRMIZI
@@ -79,7 +79,7 @@ ad = "Genel sosyal medya (varsayılan değerler)"
 
 [profil.egitim]
 ad = "Eğitim / çocuk platformu (en sıkı)"
-mesaj.sari_esigi = 0.40
+mesaj.sari_esigi = 0.44
 mesaj.cok_kotu_esigi = 0.75
 mesaj.tehdit_esigi = 0.50
 mesaj.nefret_esigi = 0.65

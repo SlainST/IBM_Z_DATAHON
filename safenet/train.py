@@ -56,6 +56,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (average_precision_score, confusion_matrix, f1_score, precision_recall_fscore_support,
                              roc_auc_score)
 from sklearn.model_selection import GroupShuffleSplit
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 
 import augment
@@ -99,10 +100,21 @@ def features(bits: int) -> FeatureUnion:
                          ("chars", branch(analyzer="char_wb", ngram_range=(2, 5)))])
 
 
-def classifier(C: float) -> LogisticRegression:
+# scikit-learn 1.8 dropped liblinear's built-in one-vs-rest: there Model 2 is wrapped in OneVsRestClassifier (the
+# same six binary models), and the sample weights reach them through metadata routing. The server's 1.4 is unchanged.
+WRAP_OVR = tuple(int(x) for x in sklearn.__version__.split(".")[:2]) >= (1, 8)
+if WRAP_OVR:
+    sklearn.set_config(enable_metadata_routing=True)
+
+
+def classifier(C: float, multiclass: bool = False):
     """liblinear: fast on sparse, high-dimensional text features; one-vs-rest for Model 2's six categories.
     (lbfgs needed ~2 s per iteration here for Model 2.)"""
-    return LogisticRegression(C=C, solver="liblinear", max_iter=300)
+    clf = LogisticRegression(C=C, solver="liblinear", max_iter=300)
+    if not WRAP_OVR:
+        return clf
+    clf.set_fit_request(sample_weight=True)
+    return OneVsRestClassifier(clf) if multiclass else clf
 
 
 def no_weights(df: pd.DataFrame):
@@ -158,7 +170,7 @@ def choose_c(name, train, valid, target, weights, score, bits, candidates):
     scores, models = {}, {}
     for C in candidates:
         start = time.time()
-        clf = classifier(C).fit(A, train[target], sample_weight=weights(train))
+        clf = classifier(C, target == "category").fit(A, train[target], sample_weight=weights(train))
         scores[C] = round(float(score(clf, B, valid)), 4)
         models[C] = Pipeline([("features", feats), ("clf", clf)])
         print(f"   {name} C={C}: {scores[C]:.4f} ({elapsed(start)})")
@@ -168,8 +180,9 @@ def choose_c(name, train, valid, target, weights, score, bits, candidates):
 
 def fit_final(train, target, weights, C, bits) -> Pipeline:
     start = time.time()
-    model = Pipeline([("features", features(bits)), ("clf", classifier(C))])
-    model.fit(train[TEXT], train[target], clf__sample_weight=weights(train))
+    model = Pipeline([("features", features(bits)), ("clf", classifier(C, target == "category"))])
+    w = weights(train)
+    model.fit(train[TEXT], train[target], **({"sample_weight": w} if WRAP_OVR else {"clf__sample_weight": w}))
     print(f"   fitted on {len(train)} messages ({elapsed(start)})")
     return model
 

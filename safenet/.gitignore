@@ -7,3 +7,4 @@ __pycache__/
 *.pem
 models_dev/
 models_sample/
+models/model_info.json

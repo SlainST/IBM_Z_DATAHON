@@ -262,9 +262,10 @@ def main():
     models = Models()
     judge = Judge(models)
     print(f"models: {models.status()} {models.version() or ''}")
-    if args.dev and models.version() and "dev" not in models.version():
+    dev_pair = "dev" in (models.info or {})
+    if args.dev and models.model1 is not None and not dev_pair:
         print("!! --dev with models that were trained on the validation split: use SAFENET_MODELS_DIR=models_dev")
-    if not args.dev and models.version() and "dev" in models.version():
+    if not args.dev and dev_pair:
         print("!! models_dev measured on held-out data: the reported numbers are for the models in models/")
     report = {"when": time.strftime("%Y-%m-%d %H:%M"), "machine": {**ibmz.info(), "python": machine.python_version()},
               "models": {"status": models.status(), "version": models.version()}, "dev": args.dev}
