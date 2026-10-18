@@ -1,5 +1,6 @@
 """PDF step 9: one message in, the CheckResponse out (docs/API.md)."""
 from collections import Counter
+from datetime import datetime
 
 from .. import settings
 from ..ml.models import Models
@@ -15,7 +16,8 @@ class Moderator:
         self.models = models or Models()
         self.analyzer = Analyzer(self.models)
 
-    def check(self, platform: str, req: dict) -> dict:
+    def check(self, platform: str, req: dict, now: datetime | None = None) -> dict:
+        """now: when the message was sent, for replaying a conversation (simulate.py); the clock when None."""
         sender, recipient = req["sender_id"], req.get("recipient_id")
         group = req.get("group_id") or "general"
         message_id = req.get("message_id")
@@ -29,13 +31,12 @@ class Moderator:
             if tx.replay is not None:
                 stored, replayed = tx.replay, True
             else:
-                stored, replayed = self._decide(analysis, a, tx), False
+                stored, replayed = self._decide(analysis, a, tx, now or utcnow()), False
         if replayed:
             self.store.count(platform, group, Counter({"replayed": 1}))
         return self._answer(text, analysis, stored, platform, group, sender, recipient, message_id, replayed)
 
-    def _decide(self, analysis, a: dict, tx) -> dict:
-        now = utcnow()
+    def _decide(self, analysis, a: dict, tx, now: datetime) -> dict:
         user, rel = tx.user, tx.relation
         verdict = judge(analysis, a)
         decision, reason = verdict.decision, verdict.reason

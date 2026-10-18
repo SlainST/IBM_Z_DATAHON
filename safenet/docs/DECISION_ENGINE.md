@@ -12,7 +12,7 @@ prints what each platform ends up with. The design before the PDF is `SAFENET_AR
 | 1. The platform sends the message | `api/app.py`; the key picks the platform (`api/auth.py`) |
 | 2. Cleaning, hidden profanity | `pipeline/profanity.py` finds the words of `kufur_listesi.csv` in the text as sent, decoding `f*ck`, `sh1t`, `f u c k`, look-alike letters and invisible characters with the team's `temizlik.py`; `temizlik.temizle()` removes @names, links and emoji for the models, exactly as in training |
 | 3. Sentences | `pipeline/text.py`, `sentences()` |
-| 4. Model 1: harm per sentence | `ml/models.py`, one batch call per message |
+| 4. Model 1: harm per sentence | `ml/models.py`, one batch call per message; `ml/rules.py` adjusts the scores (below) |
 | 5. Wordless harm | Model 1 again on each sentence with its listed words removed |
 | 6. Model 2: category | insult, gender, religion, race, sexual, threat |
 | 7. Identity | the team's `kimlik.py`: mention, generalization or targeted (the identity terms are in `kimlik.py`) |
@@ -20,6 +20,23 @@ prints what each platform ends up with. The design before the PDF is `SAFENET_AR
 | 9. The answer | `engine/moderator.py` → the answer in `docs/API.md` |
 
 Until the models are trained, the fallback rules in `ml/models.py` (a few dozen weighted phrases) give both scores.
+
+## Scores: the models and the phrase rules
+
+Model 1 gives a probability, and a probability is not a severity: "you are an idiot" is harmful almost surely,
+yet the team's evaluation set expects an insult to be yellow, not blocked. `ml/rules.py` turns the two models'
+output into the `harm`, `wordless_harm` and `category` the colours above are computed from:
+
+| What | Effect | Why |
+|---|---|---|
+| Explicit threat, self-harm encouragement, blackmail ("i'll break your legs", "kys", "or i'll post your pics") | harm ≥ 0.95, category threat | ~480 threats in the data: phrasings it never saw scored low |
+| Severe bullying, sexual request, xenophobia, a group called vermin or criminals | harm ≥ 0.92, that rule's category | red on every profile: "nobody likes you", "send me a pic of you in your underwear", "go back to your country" |
+| A plain insult (Model 2: insult, no rule, no identity attacked) | harm ≤ 0.72 | yellow on every profile, never red by itself |
+| An identity only mentioned (no slur, no "you muslim", no claim about the whole group, no hostile word) | scored again without the identity words; the lower score is kept | "i'm gay i love men" scored 0.68, "she's the first black woman to win that award" 0.93 |
+| What the sender reports ("she told me ...") | only threats keep their floor (and are held as quoted threats) | a victim quoting a bully isn't blocked |
+
+Each pattern was checked on the training split (precision of the matched messages, how often it fires on
+harmless ones); the numbers are in `models/README.md`. Tests: `tests/test_rules.py`, `tests/test_check.py`.
 
 ## Colour and decision
 
@@ -67,7 +84,7 @@ At `uyari_esigi` the answer suggests `warn_sender`. At `susturma_esigi` the send
 time; a **clean** message (green, no profanity) lowers them by the profile's rate when at least
 `iyilesme_esigi` of the previous 10 messages were clean.
 
-The PDF example, on `demo_sosyal`: "... I'll f*cking break your legs." is a threat (harm 0.96, wordless 0.93)
+The PDF example, on `demo_sosyal`: "... I'll f*cking break your legs." is a threat (harm 0.96, wordless 0.95 with the fallback rules)
 → block, +40 threat + 5 fucking + 3 disguised = **+48**, past 40 → warned. `tests/test_check.py` checks
 this and the recovery rule.
 
@@ -123,10 +140,19 @@ code on 18 Oct. The evaluation set shows what each choice does to real messages:
    whole family" are allowed.
    (b) "kill yourself" written out is not found in the text, only `kys` is: list entries of two words are
    not matched. It is not starred on any platform, and on `demo_oyun` it is allowed.
+   **On `fevzi/integration`, for the team review:** (a) a game word is taken out only when the message has one
+   of that word's context clues from `karistirilabilir_kelimeler.csv` ("gg, I will kill you next round" is
+   allowed on `demo_oyun`, "I will kill you and your whole family" is blocked there too; `pipeline/text.py`,
+   `without_game_words`); (b) a listed phrase none of whose words is listed ("kill yourself", "kill urself",
+   "kill your self") is found written out, starred and scored 10 like `kys` (`pipeline/profanity.py`,
+   `phrases`). The team test that expected "I will kill you" to be allowed on `demo_oyun` now uses
+   "gg, I will kill you next round".
 10. **Spam** has points in the PDF but no rule: 3 or more links, or one word repeated at least 8 times and
     making up more than 60 % of the message.
     **Status: bekliyor.** Checked: the rule is in the code (`pipeline/text.py`, `spam()`), not in
     `ayarlar.toml`. A repeated phrase is not spam: in "follow me" × 8 each word is 50 % of the message.
+    **On `fevzi/integration`:** a phrase of up to 4 words counts like a word: "follow me" × 8 is spam (8
+    repeats, 100 % of the words). The numbers are constants at the top of `pipeline/text.py`.
 11. **Model 2 runs only for sentences with harm or wordless harm ≥ 0.25**, and `category` is reported only
     for yellow and red, to keep the latency down.
     **Status: bekliyor.** Checked: matches the code.

@@ -1,11 +1,13 @@
-"""The trained model files (models/model1.joblib, models/model2.joblib, made by train.py) and the explicit
-threat rules in safenet/ml/models.py.
+"""The trained model files (models/model1.joblib, models/model2.joblib, made by train.py).
 
-The model tests are skipped where the files are not there (laptops, CI). On the server, after training or
-deploying a new pair:  .venv/bin/python -m pytest tests/test_models.py
-The held-out sentences come from augment.py and were never trained on.
+The model tests are skipped where the files are not there (laptops, CI) or were trained on a machine with the
+other byte order (the hashed features differ: safenet/ml/models.py). On the server, after training or deploying
+a new pair:  .venv/bin/python -m pytest tests/test_models.py
+The held-out sentences come from augment.py and were never trained on. The phrase rules are in test_rules.py.
 """
+import json
 import statistics
+import sys
 import time
 
 import joblib
@@ -15,11 +17,24 @@ import augment
 import temizlik
 from safenet import config
 from safenet.engine.moderator import Moderator
-from safenet.ml.models import CATEGORIES, CATEGORY, Models, explicit_threat
+from safenet.ml import models as ml
+from safenet.ml.models import CATEGORIES, CATEGORY, Models
 from safenet.state.store import MemoryStore
 
 FILES = (config.MODELS_DIR / "model1.joblib", config.MODELS_DIR / "model2.joblib")
-needs_models = pytest.mark.skipif(not all(f.exists() for f in FILES), reason="no trained model files in models/")
+INFO = config.MODELS_DIR / ml.INFO
+
+
+def _usable() -> tuple[bool, str]:
+    if not all(f.exists() for f in FILES):
+        return False, "no trained model files in models/"
+    trained_on = json.loads(INFO.read_text(encoding="utf-8")).get("byteorder") if INFO.exists() else None
+    if trained_on and trained_on != sys.byteorder:
+        return False, f"models/ was trained on a {trained_on}-endian machine, this one is {sys.byteorder}-endian"
+    return True, ""
+
+
+needs_models = pytest.mark.skipif(not _usable()[0], reason=_usable()[1])
 PDF_TEXT = "Great match yesterday Mark. But if you show up on Friday I'll f*cking break your legs."
 
 
@@ -95,16 +110,24 @@ def test_look_alikes_are_not_blocked(mod):
         assert r["decision"] != "block", text
 
 
-@pytest.mark.parametrize("text", [
-    "I'll f*cking break your legs", "i swear i will smash your face in", "you are dead meat",
-    "i'm gonna beat the crap out of you", "i hope you die", "kys", "watch your back",
-    "i'm going to hurt you after school"])
-def test_explicit_threats(text):
-    assert explicit_threat(temizlik.temizle(text))
+def _dummy_pair(folder, byteorder):
+    joblib.dump({"stand-in": 1}, folder / "model1.joblib")
+    joblib.dump({"stand-in": 2}, folder / "model2.joblib")
+    (folder / ml.INFO).write_text(json.dumps({"byteorder": byteorder, "trained": "2026-10-18T05:00:00",
+                                              "machine": "s390x", "sklearn": "1.4.1.post1"}), encoding="utf-8")
 
 
-@pytest.mark.parametrize("text", [
-    "you are dead wrong", "you're dead on with that", "i'll shoot you an email", "i'll find you a seat",
-    "break a leg tonight!", "i'm going to beat your high score", "kill the lights please", "you are dead to me"])
-def test_not_explicit_threats(text):
-    assert not explicit_threat(temizlik.temizle(text))
+def test_a_pair_from_the_other_byte_order_is_not_used(tmp_path, monkeypatch):
+    monkeypatch.setattr(ml, "MODELS_DIR", tmp_path)
+    _dummy_pair(tmp_path, "big" if sys.byteorder == "little" else "little")
+    assert Models().status() == {"model1": "fallback", "model2": "fallback"}
+    assert Models().version() is None
+
+
+def test_a_pair_from_this_byte_order_is_loaded(tmp_path, monkeypatch):
+    monkeypatch.setattr(ml, "MODELS_DIR", tmp_path)
+    _dummy_pair(tmp_path, sys.byteorder)
+    m = Models()
+    assert m.status() == {"model1": "loaded", "model2": "loaded"}
+    assert m.version() == {"trained": "2026-10-18T05:00:00", "machine": "s390x", "byteorder": sys.byteorder,
+                           "sklearn": "1.4.1.post1"}

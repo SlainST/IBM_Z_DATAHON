@@ -1,6 +1,7 @@
 """Sentences, possible typos, game words, quotes and spam: the small text rules around the models."""
 import csv
 import re
+from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -63,14 +64,29 @@ def possible_typo(sentence: str, offset: int, hit, min_clues: int) -> dict | Non
 
 
 @lru_cache(maxsize=1)
-def _game_words() -> re.Pattern:
-    words = sorted({r["kelime"] for r in confusables() if r["kategori"] == "oyun_dili"}, key=len, reverse=True)
-    return re.compile(r"\b(?:" + "|".join(map(re.escape, words)) + r")(?:s|d|ed|ing|er|ers)?\b", re.I)
+def _game_words() -> list[tuple[re.Pattern, frozenset, tuple]]:
+    """The oyun_dili rows: the word with its endings, its context clues that are words, and those that are not (😂)."""
+    out = []
+    for r in confusables():
+        if r["kategori"] != "oyun_dili":
+            continue
+        words = frozenset(c for c in r["clues"] if _WORD.fullmatch(c))
+        signs = tuple(c for c in r["clues"] if not _WORD.fullmatch(c))
+        out.append((re.compile(rf"\b{re.escape(r['kelime'])}(?:s|d|ed|ing|er|ers)?\b", re.I), words, signs))
+    return out
 
 
-def without_game_words(sentence: str) -> str:
-    """oyun_dili_serbest: 'kill / die / destroy' are taken out before the models score the sentence."""
-    return _game_words().sub(" ", sentence)
+def without_game_words(sentence: str, message: str) -> str:
+    """oyun_dili_serbest: a game word ('kill', 'die', 'destroy') is taken out before the models score the
+    sentence when the message has one of that word's context clues (karistirilabilir_kelimeler.csv: 'match',
+    'round', 'gg'...). "gg, I will kill you next round" is game talk; "I will kill you and your whole family"
+    keeps its words and is judged like on any other platform."""
+    lowered = message.lower()
+    words = set(_WORD.findall(lowered))
+    for pattern, clues, signs in _game_words():
+        if words & clues or any(s in lowered for s in signs):
+            sentence = pattern.sub(" ", sentence)
+    return sentence
 
 
 _QUOTED = re.compile(r"[\"“”«»„]([^\"“”«»„]{3,})[\"“”«»„]")
@@ -91,14 +107,34 @@ def quoted(text: str, span: Span, previous: Span | None) -> bool:
 
 
 _LINK = re.compile(r"https?://|www\.", re.I)
+SPAM_LINKS = 3          # this many links make a message spam
+SPAM_REPEATS = 8        # a word or phrase repeated at least this many times...
+SPAM_SHARE = 0.6        # ...making up more than this share of the words
+SPAM_PHRASE_WORDS = 4   # phrases of up to this many words ("follow me" x 8)
+
+
+def _repeats(words: list[str], n: int) -> int:
+    """How many times the most frequent run of n words occurs, without overlapping itself."""
+    gram = Counter(tuple(words[i:i + n]) for i in range(len(words) - n + 1)).most_common(1)[0][0]
+    count, i = 0, 0
+    while i <= len(words) - n:
+        if tuple(words[i:i + n]) == gram:
+            count, i = count + 1, i + n
+        else:
+            i += 1
+    return count
 
 
 def spam(text: str) -> bool:
-    """3 or more links, or one word repeated at least 8 times making up more than 60 % of the words."""
-    if len(_LINK.findall(text)) >= 3:
+    """3 or more links, or one word or phrase of up to 4 words repeated at least 8 times and making up more
+    than 60 % of the words: "lol" x 10, "follow me" x 8."""
+    if len(_LINK.findall(text)) >= SPAM_LINKS:
         return True
     words = [w.lower() for w in _WORD.findall(text)]
-    if len(words) < 8:
-        return False
-    top = max(words.count(w) for w in set(words))
-    return top >= 8 and top / len(words) > 0.6
+    for n in range(1, SPAM_PHRASE_WORDS + 1):
+        if len(words) < SPAM_REPEATS * n:
+            break
+        count = _repeats(words, n)
+        if count >= SPAM_REPEATS and count * n / len(words) > SPAM_SHARE:
+            return True
+    return False

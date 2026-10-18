@@ -87,11 +87,53 @@ def test_quoted_threat_is_held(mod, uid):
     assert r["decision"] == "hold" and r["reason"] == "quoted_threat"
 
 
-def test_game_words_free_on_game_platform(mod, uid):
-    game = mod.check("demo_oyun", msg(uid, "I will kill you"))
-    social = mod.check("demo_sosyal", msg(uid, "I will kill you"))
+def test_game_words_free_only_in_game_context(mod, uid):
+    """oyun_dili_serbest frees "kill" when the message has one of its clues ("gg", "round"); a threat without
+    them is judged like on any platform (docs/DECISION_ENGINE.md, choice 9a)."""
+    game = mod.check("demo_oyun", msg(uid, "gg, I will kill you next round"))
+    social = mod.check("demo_sosyal", msg(uid, "gg, I will kill you next round"))
     assert game["decision"] == "allow"
     assert social["decision"] == "block" and social["reason"] == "threat"
+    real = mod.check("demo_oyun", msg(uid, "I will kill you and your whole family", sender="c"))
+    assert real["decision"] == "block" and real["reason"] == "threat"
+
+
+def test_written_out_kill_yourself_is_starred_like_kys(mod, uid):
+    r = mod.check("demo_oyun", msg(uid, "just kill yourself, loser"))
+    assert r["decision"] == "block" and r["reason"] == "threat"
+    assert r["censored"] == [{"start": 5, "end": 18}] and r["hidden_profanity"] == []
+    assert "kill yourself" in r["key_words"]
+
+
+def test_repeated_phrase_is_spam(mod, uid):
+    r = mod.check("demo_sosyal", msg(uid, " ".join(["follow me"] * 8)))
+    assert r["decision"] == "block" and r["reason"] == "spam"
+
+
+def test_severe_bullying_is_red_without_any_listed_word(mod, uid):
+    r = mod.check("demo_sosyal", msg(uid, "nobody likes you, just leave the group chat"))
+    assert (r["decision"], r["reason"], r["category"]) == ("block", "very_harmful", "insult")
+    assert r["key_words"][0] == "nobody likes you"
+
+
+def test_plain_insults_stay_yellow(mod, uid):
+    r = mod.check("demo_sosyal", msg(uid, "you are a stupid ugly loser"))
+    assert (r["decision"], r["reason"], r["category"]) == ("censor", "harmful", "insult")
+    assert r["harm"] <= 0.72
+
+
+def test_reported_bullying_is_not_red(mod, uid):
+    r = mod.check("demo_okul", msg(uid, 'she told me "nobody likes you" in front of everyone'))
+    assert r["decision"] != "block"
+
+
+def test_sexual_request_xenophobia_and_blackmail_are_red(mod, uid):
+    sexual = mod.check("demo_sosyal", msg(uid, "send me a pic of you in your underwear"))
+    assert (sexual["decision"], sexual["reason"], sexual["category"]) == ("block", "very_harmful", "sexual")
+    hate = mod.check("demo_sosyal", msg(uid, "go back to your country", sender="c"))
+    assert (hate["decision"], hate["reason"], hate["category"]) == ("block", "hate", "race")
+    blackmail = mod.check("demo_sosyal", msg(uid, "send me your address or I'll post your pics everywhere", sender="d"))
+    assert (blackmail["decision"], blackmail["reason"]) == ("block", "threat")
 
 
 def test_spaced_and_lookalike_profanity(mod, uid):

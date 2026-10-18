@@ -7,6 +7,7 @@ rewrites the whole text for the models, which loses the offsets.
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 
 import temizlik
 
@@ -14,6 +15,21 @@ LETTER = r"[^\W\d_]"
 # f u c k, s.h.i.t, f-u-c-k: three or more single letters with one or two separators between them
 SPACED = re.compile(rf"(?<!\w)(?:{LETTER}[ .\-_*]{{1,2}}){{2,}}{LETTER}(?!\w)")
 TOKEN = re.compile(r"\S+")
+
+
+@lru_cache(maxsize=1)
+def phrases() -> list[tuple[re.Pattern, str]]:
+    """Listed phrases written out in full. "kys" is listed as "kill yourself" and neither "kill" nor "yourself" is
+    a listed word, so the phrase itself is looked for: "kill yourself", "kill urself", "kill your self".
+    A phrase with a listed word in it ("what the fuck") is already found through that word."""
+    out = []
+    for phrase in sorted(set(temizlik.ASIL.values())):
+        parts = phrase.split()
+        if len(parts) < 2 or any(p in temizlik.ASIL for p in parts):
+            continue
+        body = r"\s+".join(r"(?:your|ur)\s*self" if p == "yourself" else re.escape(p) for p in parts)
+        out.append((re.compile(rf"(?<!\w){body}(?!\w)", re.I), phrase))
+    return out
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +79,13 @@ def find(text: str) -> list[Hit]:
                     break
             if done:
                 break
+
+    for pattern, phrase in phrases():
+        for m in pattern.finditer(text):
+            if any(s < m.end() and m.start() < e for s, e in taken):
+                continue
+            hits.append(Hit(m.start(), m.end(), m.group(0), phrase, temizlik.SEVIYE.get(phrase, 5), False))
+            taken.append((m.start(), m.end()))
 
     for m in TOKEN.finditer(text):
         if any(s < m.end() and m.start() < e for s, e in taken):
