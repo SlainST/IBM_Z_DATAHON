@@ -169,6 +169,18 @@ Veritabanı şeması ve paketler değişmedi.
 - [ ] `docs/API.md`'de `harm` alanının açıklamasına bir cümle eklendi: mesajı sarı yapan bütün mesaj skoruysa `harm`
       o skoru gösteriyor. Alan ve şema aynı, sadece anlamı genişledi.
 
+## Canlı demo (video ve jüri için)
+
+```bash
+cd safenet
+python demo_web.py --keys-file C:\Users\<sen>\Downloads\api_keys.env    # sunucuya SSH tüneli açar
+```
+
+Tarayıcıda http://127.0.0.1:8600 açılır: Ali Ayşe'ye yazar, her mesaj canlı SafeNet API'sinden (LinuxONE) geçer.
+Sayfada Ayşe'nin ne gördüğü (teslim / yıldızlı / moderatörde / engellendi), sebep, kategori, kararı veren kelimeler,
+Ali'nin gizli puanı ve Ali → Ayşe ilişkisi görünür; üstten platform (sosyal / okul / oyun) seçilir, soldaki örneklere
+tıklamak yeterli. Anahtarlar tarayıcıya gitmez. Komut satırı demosu: `python demo.py`.
+
 ## Çalıştırma
 
 Lokalde (laptop):
