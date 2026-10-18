@@ -3,6 +3,8 @@
 Input:   veri/birlesik_veri.csv       output of veri_hazirla.py; "metin" is already temizlik.temizle() output
 Output:  models/model1.joblib         harm:     predict_proba(texts)[:, 1] = probability of harmful, classes_ = [0, 1]
          models/model2.joblib         category: predict(texts) = insult | gender | religion | race | sexual | threat
+         models/model_info.json       when, where and with what the pair was trained; the API refuses a pair
+                                      trained on the other byte order (safenet/ml/models.py)
          veri/training_report.json    every metric and the threshold proposals (gitignored)
 
 Both files are plain scikit-learn Pipelines (joblib.dump(pipeline)): the team's API (safenet/ml/models.py)
@@ -16,8 +18,9 @@ may not load in the API.
     python train.py --evaluate         # no training: measure models/ again -> veri/evaluation_report.json
 
 Synthetic sentences (augment.py) are added to the training rows only, never to validation or test: neutral
-sentences for identity words the data made look harmful, and threats (only ~480 real ones). The held-out checks
-at the end use other templates and words, and the PDF example.
+sentences for identity words the data made look harmful, threats (only ~480 real ones), swearing at things versus
+insults aimed at the reader, and victims' accounts. The held-out checks at the end use other templates and words,
+and the PDF example; the team's evaluation set (degerlendirme_seti.csv) is never trained on either.
 
 Overfitting guards:
   - The test split (bolum == "test") is used once, at the very end.
@@ -32,6 +35,7 @@ at ~0.5 ms per call and keep the model files small: the API scores every message
 import argparse
 import json
 import platform
+import sys
 import time
 from pathlib import Path
 
@@ -47,6 +51,7 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import FeatureUnion, Pipeline
 
 import augment
+import degerlendir
 import temizlik
 
 ROOT = Path(__file__).resolve().parent
@@ -270,11 +275,13 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     """Steps 2-5: choose C on validation, propose thresholds, fit and save the final pair."""
     synthetic = pd.DataFrame(columns=[TEXT, HARMFUL, "category"])
     if not args.no_augment:
-        synthetic, info = augment.build(train, set(test[TEXT]) | set(yt[TEXT]), TEXT, HARMFUL)
+        innocent = pd.read_csv(ROOT / "karistirilabilir_kelimeler.csv")["ornek_masum_cumle"]
+        evaluated = {temizlik.temizle(t) for t in [r["metin"] for r in degerlendir.oku()] + innocent.tolist()}
+        synthetic, info = augment.build(train, set(test[TEXT]) | set(yt[TEXT]) | evaluated, TEXT, HARMFUL)
         synthetic = synthetic.assign(**{CATEGORY_SOURCE: "sentetik", SOURCE: "sentetik", GROUP: -1, SPLIT: "egitim"})
         report["augmentation"] = info
-        print(f"   + synthetic (training only): {info['identity_sentences']} neutral identity sentences, "
-              f"{info['threat_sentences']} threats, {info['benign_frame_sentences']} harmless in the same frames")
+        print(f"   + synthetic (training only), {info['harmful']} of them harmful: "
+              + ", ".join(f"{k} {v}" for k, v in info["per_kind"].items()))
     inner_fit, train_fit = pd.concat([inner, synthetic]), pd.concat([train, synthetic])
 
     print("2) Model 1 (harmful?): choosing C on validation PR-AUC")
@@ -315,9 +322,14 @@ def fit_models(args, train, inner, valid, test, yt, report, out_dir):
     model2 = fit_final(train_fit[train_fit[HARMFUL] == 1], "category", category_weights, c2, bits=19)
     joblib.dump(model1, out_dir / "model1.joblib", compress=3)
     joblib.dump(model2, out_dir / "model2.joblib", compress=3)
+    info = {"trained": time.strftime("%Y-%m-%dT%H:%M:%S"), "machine": platform.machine(), "byteorder": sys.byteorder,
+            "python": platform.python_version(), "sklearn": sklearn.__version__, "numpy": np.__version__,
+            "model1": {"C": c1, "bits": 20}, "model2": {"C": c2, "bits": 19},
+            "training_messages": len(train_fit), "synthetic": report.get("augmentation", {}).get("per_kind", {})}
+    (out_dir / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
     report["files_mb"] = {f.name: round(f.stat().st_size / 1e6, 1)
                           for f in (out_dir / "model1.joblib", out_dir / "model2.joblib")}
-    print(f"   saved {report['files_mb']} MB -> {out_dir}")
+    print(f"   saved {report['files_mb']} MB and model_info.json -> {out_dir}")
     return model1, model2
 
 
@@ -382,12 +394,13 @@ def evaluate(model1, model2, test, yt, report, api_eval):
     print(f"   neutral mean {h['neutral_mean']} (max {h['neutral_max']}, above 0.5: {h['neutral_above_0.5']} of "
           f"{len(ids)}); hateful mean {h['hateful_mean']} (min {h['hateful_min']})")
 
-    print("10) Held-out threats, look-alikes and examples (demo_sosyal)")
-    examples = (augment.HELDOUT_THREATS + augment.HELDOUT_BENIGN +
+    print("10) Held-out threats, look-alikes, harmless and aimed sentences, and examples (demo_sosyal)")
+    examples = (augment.HELDOUT_THREATS + augment.HELDOUT_BENIGN + augment.HELDOUT_HARMLESS + augment.HELDOUT_AIMED +
                 ["see you tomorrow", "fuck, i missed the bus", "you are a worthless idiot", "i'm a proud muslim",
                  "muslims are terrorists", "i will kill you", "we fed the ducks at the lake",
                  "this game is so fucking hard lol", "go back to your country"])
     groups = (["threat"] * len(augment.HELDOUT_THREATS) + ["look-alike"] * len(augment.HELDOUT_BENIGN)
+              + ["harmless"] * len(augment.HELDOUT_HARMLESS) + ["aimed"] * len(augment.HELDOUT_AIMED)
               + ["example"] * 9)
     ex = api_analyze(model1, model2, examples)
     verdicts = api_verdicts(ex, "demo_sosyal")
@@ -400,11 +413,16 @@ def evaluate(model1, model2, test, yt, report, api_eval):
     report["heldout_lookalikes_blocked"] = (
         f"{sum(e['decision'] == 'block' for e in report['examples'] if e['group'] == 'look-alike')} "
         f"of {len(augment.HELDOUT_BENIGN)}")
+    flagged = lambda group: sum(e["reason"] not in (None, "profanity") for e in report["examples"]  # noqa: E731
+                                if e["group"] == group)
+    report["heldout_harmless_yellow_or_red"] = f"{flagged('harmless')} of {len(augment.HELDOUT_HARMLESS)}"
+    report["heldout_aimed_yellow_or_red"] = f"{flagged('aimed')} of {len(augment.HELDOUT_AIMED)}"
     for e in report["examples"]:
         print(f"   {e['group']:10} harm {e['harm']:.2f}  wordless {e['wordless']:.2f}  {e['decision']:6}"
               f" {str(e['reason']):13} {e['categories']}  {e['text'][:55]}")
     print(f"   held-out threats blocked: {report['heldout_threats_blocked']}; "
-          f"look-alikes blocked: {report['heldout_lookalikes_blocked']}")
+          f"look-alikes blocked: {report['heldout_lookalikes_blocked']}; harmless yellow or red: "
+          f"{report['heldout_harmless_yellow_or_red']}; aimed insults yellow or red: {report['heldout_aimed_yellow_or_red']}")
 
 
 if __name__ == "__main__":
