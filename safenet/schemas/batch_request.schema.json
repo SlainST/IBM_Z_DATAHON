@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "CheckRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "sender_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+          "title": "Sender Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "recipient_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recipient Id"
+        },
+        "group_id": {
+          "default": "general",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+          "title": "Group Id",
+          "type": "string"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Id"
+        }
+      },
+      "required": [
+        "sender_id",
+        "text"
+      ],
+      "title": "CheckRequest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/CheckRequest"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Messages",
+      "type": "array"
+    }
+  },
+  "required": [
+    "messages"
+  ],
+  "title": "BatchRequest",
+  "type": "object"
+}

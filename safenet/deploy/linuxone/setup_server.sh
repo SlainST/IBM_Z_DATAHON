@@ -14,7 +14,7 @@ if [ ${#missing[@]} -gt 0 ]; then
     echo "Missing OS packages. Run once (ask the team first, it uses sudo):"
     echo "  sudo apt install ${missing[*]}"
   else
-    echo "Missing: ${missing[*]}. On RHEL/SLES install python3-numpy python3-scipy python3-scikit-learn python3-joblib libpq (see docs/LIBRARIES.md)."
+    echo "Missing: ${missing[*]}. On RHEL/SLES install python3-numpy python3-scipy python3-scikit-learn python3-joblib libpq (see SAFENET_ARCHITECTURE.md, section 6)."
   fi
   exit 1
 fi
