@@ -214,10 +214,12 @@ def scorecard(r: dict) -> list[tuple[str, str, str, bool | None]]:
     if r.get("simulation"):
         sim = r["simulation"][HEADLINE]
         rows += [
-        ("1:1 simulation: restricted, of those who should be (demo_sosyal)", f"{sim['restricted_of_should']:.0%}",
+        ("1:1 simulation: restricted, of those who should be (type, or a threat or slur sent; by type alone)",
+         f"{sim['restricted_of_should']:.0%} ({sim.get('persona_restricted_of_should', 0):.0%})",
          ">= 90 %", sim["restricted_of_should"] >= simulate.SHOULD_AT_LEAST),
-        ("1:1 simulation: restricted, of the others (by harmless messages alone)",
-         f"{sim['restricted_of_should_not']:.0%} ({sim['restricted_of_should_not_without_a_harmful_message']:.0%})",
+        ("1:1 simulation: restricted, of the others (by type alone; by harmless messages alone)",
+         f"{sim['restricted_of_should_not']:.0%} ({sim.get('persona_restricted_of_should_not', 0):.0%}; "
+         f"{sim['restricted_of_should_not_without_a_harmful_message']:.0%})",
          "<= 5 %", sim["restricted_of_should_not"] <= simulate.SHOULD_NOT_AT_MOST),
         ("Bullying conversations where the victim stops getting the bully's messages",
          sim["bullying_conversations_protected"], "every one", sim["bullying_all_protected"]),

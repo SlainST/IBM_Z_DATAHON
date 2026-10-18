@@ -27,25 +27,25 @@ Her şey LinuxONE sunucusunda, modelin **hiç görmediği** veriyle ölçüldü 
 
 | Hedef | Sonuç | Hedef değer | Tuttu mu |
 |---|---|---|---|
-| Zararlı mesaj yakalama (37,588 test mesajı, sosyal profil) | **86.7 %** | ≥ 85 % | evet |
+| Zararlı mesaj yakalama (37,588 test mesajı, sosyal profil) | **86.6 %** | ≥ 85 % | evet |
 | Masum mesajda yanlış alarm (bekletildi veya engellendi) | 0.6 % | ≤ 5 % | evet |
 | Masum benzer cümleler ("I fed the duck", "I'm a proud Muslim", "Scunthorpe") engellenen | 0 / 124 | hiçbiri | evet |
 | Kategori doğruluğu (insanların verdiği etiketler) | 96.4 % | ≥ 75 % | evet |
-| Mesaj başına süre, p50 / p99 | 2.3 / 8.1 ms | < 10 ms | evet |
+| Mesaj başına süre, p50 / p99 | 2.4 / 8.3 ms | < 10 ms | evet |
 | Zorbalık sohbetlerinde mağdurun zorbanın mesajlarını almaması | 6 / 6 | hepsi | evet |
 | Geliştirici 2'nin değerlendirme seti (104 mesaj × 3 platform; dev / test kısmı) | 310 / 312 (183/183, 127/129) | | |
 | Gri bölge (insanların anlaşamadığı 70 mesaj) sarı | 24 % | çoğu | hayır |
-| Simülasyon: kısıtlanması gerekenler / gerekmeyenler | 89 % / 11 % | ≥ 90 % / ≤ 5 % | hayır, aşağıda |
+| Simülasyon: kısıtlanması gerekenler / gerekmeyenler (sadece kişi tipine göre) | 87 % / 6 % (89 % / 11 %) | ≥ 90 % / ≤ 5 % | hayır, yakın |
 | Yük: 3 vCPU, gerçek mesajlar, concurrency 4 | ~870 mesaj/sn | | |
 
 **Zararlı mesajların ne kadarı yakalanıyor** (8,362 zararlı test mesajı):
 
 | | Sosyal | Okul | Oyun |
 |---|---|---|---|
-| Engellendi (alıcı hiç görmüyor) | 47.5 % | 52.3 % | 45.8 % |
+| Engellendi (alıcı hiç görmüyor) | 47.4 % | 52.2 % | 45.7 % |
 | Sansürlendi veya moderatöre bekletildi | 39.2 % | 34.8 % | 38.0 % |
-| **Toplam yakalanan** | **86.7 %** | **87.1 %** | **83.8 %** |
-| Kaçan (olduğu gibi teslim) | 13.3 % | 12.9 % | 16.2 % |
+| **Toplam yakalanan** | **86.6 %** | **87.0 %** | **83.7 %** |
+| Kaçan (olduğu gibi teslim) | 13.4 % | 13.0 % | 16.3 % |
 
 Kaynağa göre yakalanan (sosyal): cyberbullying 91 %, Wikipedia 83 %, Kaggle 82 %, Twitter 59 %.
 
@@ -53,7 +53,7 @@ Kaynağa göre yakalanan (sosyal): cyberbullying 91 %, Wikipedia 83 %, Kaggle 82
 97.0 %, gender 93.1 %, insult 90.5 %). API'nin sarı ya da kırmızı işaretleyip yazdığı kategori 90.4 % doğru. Seyrek
 kategoriler zayıf: sexual 65.5 %, threat 60.4 % (açık tehdit ve cinsel taleplerde kategoriyi kurallar koyuyor).
 
-**Karşılaştırma** (aynı test): bugünkü son hâl 86.7 %; aynı motor eski eşiklerle v4 85.9 %, v3 85.2 %, modelsiz yedek
+**Karşılaştırma** (aynı test): bugünkü son hâl 86.6 %; aynı motor eski eşiklerle v4 85.9 %, v3 85.2 %, modelsiz yedek
 kurallar (fallback) 54.4 %. Bugün sabah, bu iyileştirmelerden önce: 84.0 %. Ayrıntılar ve tutmayan hedeflerin nedenleri:
 [`safenet/docs/RESULTS.md`](safenet/docs/RESULTS.md).
 
@@ -74,6 +74,7 @@ kurallar (fallback) 54.4 %. Bugün sabah, bu iyileştirmelerden önce: 84.0 %. A
 6. **Korumalar:**
    - Sadece geçen bir kimlik puan eklemez ("I'm a proud Muslim").
    - Mağdurun anlattığı susturulmaz ("I was bullied", "some kids keep calling me fat and ugly").
+   - Önyargıyı eleştiren ceza almaz ("stop making gay jokes", "how is making fun of trans people funny?").
    - Birinin aktardığı tehdit engellenmez, moderatöre gider ("he told me ...").
    - Oyun platformunda, mesajda oyun bağlamı varsa oyun kelimeleri serbest ("gg, I will kill you next round").
    - Olası yazım hatası affedilir ("I fed the fuck at the lake" → "duck"?).
@@ -144,6 +145,8 @@ Veritabanı şeması ve paketler değişmedi.
 - [x] **Sarı eşikleri:** validation'da ayarlandı ve uygulandı: varsayılan 0.46, okul 0.44 (test: sosyal 86.7 %
       yakalama; okulda masum bekletme 5.2 %).
 - [x] **Spam sayıları** `ayarlar.toml`'a taşındı (`spam_link_sayisi`, `spam_tekrar_sayisi`, `spam_tekrar_orani`).
+- [ ] **Simülasyon:** "kısıtlanmalı" artık kişi tipi **ya da** tehdit / slur atmış olmak (etikete göre): 87 % / 6 %.
+      Puanlarla oynamak iki hedefi birbirine feda ediyor (denendi: tek mesaja 45 sınırı → 82 % / 8 %).
 - [ ] **1:1'de tek mesajın puanı:** kimlik içeren tek bir kırmızı mesaj 25 + 30 × 1.5 = 70 puanla gönderenini anında
       kısıtlıyor; simülasyonda haksız kısıtlanan 6 kişinin 3'ü böyle. Tehdit dışındaki tek bir mesaja üst sınır
       konursa "kısıtlanmaması gerekenler" 11 %'den hedefe (≤ 5 %) yaklaşabilir. `python simulate.py --users` ile ölçün.
@@ -158,8 +161,8 @@ Veritabanı şeması ve paketler değişmedi.
 - [ ] Load test'i canlı kurulumda (Postgres ile) tekrarla: `bench/load_test.py --texts ...` (sonuçlar `bench/RESULTS.md`).
 
 ### Geliştirici 1 (modeller)
-- [ ] Önyargıyı eleştiren cümleler ("we shouldn't be using gay as an insult") veride zararlı etiketli ve model onlara
-      yüksek skor veriyor: bunlar için bir kural, validation'da ölçerek.
+- [x] Önyargıyı eleştiren cümleler için kural (`rules.CONDEMN`): kimlik ve eleştirilen zarar kelimeleri olmadan bir
+      daha skorlanıyor; okuyucuya etiket ya da slur varsa uygulanmıyor.
 - [ ] Gürültülü etiketleri temizlemek ve tweet'ler için de graded label (aşağıda "Sonraki adımlar").
 
 ### Ekip kararı gerekenler

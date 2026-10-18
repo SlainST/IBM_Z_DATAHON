@@ -179,7 +179,7 @@ _IDENTITY = re.compile(r"\b(?:" + "|".join(f"(?:{v})" for v in kimlik.GRUPLAR.va
 # "you muslim", "u flippin homosexual", "you're such a girl", "you are gay", "your just a homosexual": the identity
 # as a label for the reader
 _LABEL = re.compile(r"\b(you|u|ya)\s+((fucking|fuckin|flipping|flippin|freaking|freakin|frigging|friggin|bloody|damn|"
-                    r"damned|little)\s+)?(?:" + _IDENTITY.pattern + r")|\b(you'?re|youre|you are|ur|u r)\s+"
+                    r"damned|little|stupid|dumb|dirty|filthy|fat|ugly|disgusting)\s+)?(?:" + _IDENTITY.pattern + r")|\b(you'?re|youre|you are|ur|u r)\s+"
                     r"(a\s+|an\s+|such\s+a\s+|so\s+|such\s+|just\s+a\s+)?(\w+\s+)?(?:" + _IDENTITY.pattern + r")"
                     r"|\byour\s+(just\s+)?(a|an|such a)\s+(\w+\s+)?(?:" + _IDENTITY.pattern + r")")
 # "women will never...", "muslims always...", "gays should...": a claim about a whole group
@@ -215,6 +215,18 @@ DISCLAIMER = re.compile(r"\b(not|n'?t|never|call me|calling me|am i|i'?m no)\s+(
                         r"(racist|sexist|homophobic|transphobic|islamophobic|bigot|bigoted|misogynist)\b")
 
 
+# Objecting to a harm: "don't make rape jokes", "stop making gay jokes", "people who use gay as an insult", "how is
+# making fun of trans people funny?". In the training split 76 such messages mention an identity and 93 % are labelled
+# harmful (keyword-collected tweets); read one by one, nearly all of them speak up against the jokes and slurs.
+CONDEMN = re.compile(
+    r"\b(shouldn'?t|should not|stop|quit|don'?t|do not|never|not okay to|isn'?t okay to|is not okay to|not ok to|"
+    r"not cool to|wrong to)\s+(be\s+)?(using|use|making|make|telling|tell|posting|post|laughing at|joking about)\s+"
+    r"(\w+\s+){0,4}(jokes?|slurs?|insults?|words?|names?|fun of|comments?)\b"
+    r"|\bhow\s+is\s+(\w+\s+){1,12}funny\b|\b(use|using|used)\s+(\w+\s+){0,3}as\s+an?\s+insult\b")
+# the harm a sentence objects to, taken out with the identity when it is scored again
+_CONDEMNED = re.compile(r"\b(rape\w*|jokes?|joking|insults?|slurs?|offensive|suicide|self harm|n word|hate|hatred)\b")
+
+
 def mention_only(clean: str, identity: dict, has_listed_words: bool) -> bool:
     """An identity is mentioned and nothing in the sentence attacks it (3. in the module docstring)."""
     return bool(identity["gruplar"]) and not (identity["hakaret_kelimesi"] or has_listed_words
@@ -228,6 +240,8 @@ def mentions(clean: str, identity: dict, has_listed_words: bool, addressed: bool
     out of a sentence with a listed word or with an identity that may be attacked."""
     if has_listed_words or DISCLAIMER.search(clean):
         return False, False
+    if CONDEMN.search(clean) and not identity["hakaret_kelimesi"] and not _LABEL.search(clean):
+        return bool(identity["gruplar"]), "condemn"     # truthy: without() also takes out the harm objected to
     identity_words = mention_only(clean, identity, False)
     if identity["gruplar"] and not identity_words:
         return False, False
@@ -240,6 +254,8 @@ def without(clean: str, identity_words: bool = True, topic_words: bool = False) 
         clean = _IDENTITY.sub(" ", clean)
     if topic_words:
         clean = TOPIC.sub(" ", clean)
+    if topic_words == "condemn":
+        clean = _CONDEMNED.sub(" ", clean)
     return re.sub(r"\s+", " ", clean).strip()
 
 

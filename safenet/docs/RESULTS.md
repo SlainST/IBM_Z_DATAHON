@@ -9,21 +9,21 @@ platforms). Every message is judged as the first message of a new sender; the si
 
 | Target (PDF section 9) | Measured | Goal | Met |
 |---|---|---|---|
-| Harmful messages caught (test split, `demo_sosyal`) | 86.7 % | ≥ 85 % | yes |
+| Harmful messages caught (test split, `demo_sosyal`) | 86.6 % | ≥ 85 % | yes |
 | False alarms: harmless messages held or blocked (`demo_sosyal`) | 0.6 % | ≤ 5 % | yes |
 | Per source: harmful caught / false alarms | cyberbullying 91 % / 1.8 %, Kaggle 82 % / 3.7 %, Twitter 59 % / 3.8 %, Wikipedia 83 % / 0.3 % | reported | |
 | Unseen platform, YouTube: harmful caught / false alarms | 86.1 % / 17.2 % | reported | |
 | Innocent sentences blocked (duck, Muslim, bullied, Scunthorpe...) | 0 of 124 on every platform | none | yes |
 | Gray zone (conflicting labels) in yellow | 24 % (green 67 %, red 9 %) | most | no |
 | Category accuracy, human labels (Model 2) | 96.4 % | ≥ 75 % | yes |
-| Time per message, whole analysis on one core (p50 / p99) | 2.3 / 8.1 ms | < 10 ms | yes |
-| 1:1 simulation: restricted, of the users who should be (`demo_sosyal`) | 89 % (24 of 27) | ≥ 90 % | no |
-| 1:1 simulation: restricted, of the others | 11 %, 0 % by harmless messages alone | ≤ 5 % | see below |
+| Time per message, whole analysis on one core (p50 / p99) | 2.4 / 8.3 ms | < 10 ms | yes |
+| 1:1 simulation: restricted, of the users who should be (`demo_sosyal`; by user type alone) | 87 % (89 %) | ≥ 90 % | no |
+| 1:1 simulation: restricted, of the others (by user type alone; by harmless messages alone) | 6 % (11 %; 0 %) | ≤ 5 % | no |
 | Bullying conversations where the victim stops getting the bully's messages | 6 of 6 | every one | yes |
 | The team's evaluation set: expected decision given | 310 of 312 (dev part 183 of 183, test part 127 of 129) | reported | |
 
 Per platform on the test split (harmful caught / harmless held or blocked / harmless censored):
-`demo_sosyal` 86.7 % / 0.6 % / 5.6 %, `demo_okul` 87.1 % / 5.2 % / 1.3 %, `demo_oyun` 83.8 % / 0.6 % / 4.2 %.
+`demo_sosyal` 86.6 % / 0.6 % / 5.6 %, `demo_okul` 87.0 % / 5.2 % / 1.3 %, `demo_oyun` 83.7 % / 0.6 % / 4.2 %.
 1:1 simulation (restricted of those who should be / of the others, by harmless messages alone / bullying
 conversations protected): `demo_sosyal` 89 % / 11 %, 0 % / 6 of 6, `demo_okul` 93 % / 19 %, 2 % / 6 of 6,
 `demo_oyun` 74 % / 6 %, 0 % / 6 of 6.
@@ -35,8 +35,8 @@ apart on the same test split:
 
 | | now: v4, engine, thresholds 0.46 / 0.44 | v4 + engine | v3 + engine | v3, earlier today | fallback rules + engine |
 |---|---|---|---|---|---|
-| Harmful caught / false alarms (`demo_sosyal`) | 86.7 % / 0.6 % | 85.9 % / 0.6 % | 85.2 % / 0.6 % | 84.0 % / 0.6 % | 54.4 % / 0.3 % |
-| `demo_okul`: harmful caught / harmless held or blocked | 87.1 % / 5.2 % | 87.8 % / 5.9 % | 87.1 % / 5.2 % | 86.3 % / 4.9 % | 54.4 % / 1.9 % |
+| Harmful caught / false alarms (`demo_sosyal`) | 86.6 % / 0.6 % | 85.9 % / 0.6 % | 85.2 % / 0.6 % | 84.0 % / 0.6 % | 54.4 % / 0.3 % |
+| `demo_okul`: harmful caught / harmless held or blocked | 87.0 % / 5.2 % | 87.8 % / 5.9 % | 87.1 % / 5.2 % | 86.3 % / 4.9 % | 54.4 % / 1.9 % |
 | Gray zone in yellow | 24 % | 23 % | 21 % | 19 % | 1 % |
 | Innocent sentences blocked | 0 | 0 | 0 | 0 | 2 |
 | Category accuracy | 96.4 % | 96.4 % | 96.4 % | 96.4 % | 79.0 % |
@@ -58,6 +58,11 @@ apart on the same test split:
 Both were chosen on a validation split carved out of the training split (ten Model 1 variants, `models/README.md`);
 the test split was used once per measurement, as before.
 
+Last, a rule for sentences that object to a harm ("stop making gay jokes", "how is making fun of trans people
+funny?"; `rules.CONDEMN`): scored again without the identity and the harm objected to, like "racism has no place
+in sports". The data labels such tweets harmful (they were collected by keyword), so it costs 0.1 point of harmful
+caught. And the simulation's who-should-be-restricted: the user type, or a threat or a slur sent (below).
+
 ## Where a target is not met
 
 - **Gray zone, 24 % yellow.** Up from 19 %, not most. Of the 70 messages, 55 are tweets that two datasets
@@ -67,7 +72,13 @@ the test split was used once per measurement, as before.
 - **School profile, 5.2 % of harmless messages held** (4.9 % with v3), with 87.1 % of the harmful ones caught (86.3 %
   with v3). On `egitim` yellow is held for a moderator, so catching more also holds more; `sari_esigi` 0.44 (tuned on
   the validation split) brought it down from 5.9 % at 0.40. The PDF's 5 % target is for the default profile.
-- **Simulation, 89 % of the users who should be restricted.** Unchanged by the models. The three who are not: two
+- **Simulation, who should be restricted.** `simulate.py` counted only the user type, but normal users, victims and
+  repentant users get harmful messages drawn at random from the test split, sometimes a threat or a slur, and one
+  such message restricts its sender by the design's points. Now a user who sent a threat (the data's label) or a
+  slur (`kimlik.py`) should be restricted too: 87 % of those who should be and 6 % of the others are (by type
+  alone: 89 % and 11 %). Changing the points trades one target for the other (one message adding at most 45:
+  82 % and 8 %).
+- **Simulation, 89 % of the users who should be restricted (by type).** Unchanged by the models. The three who are not: two
   friends swearing at each other (no banter discount: their word points add up, but not to 70 within a
   conversation) and one troll: of the troll's five messages labelled harmful, most are indirect jabs ("you love
   getting smacked around, huh?") and one condemns prejudice ("it is 2019, we shouldn't be using the word gay as an

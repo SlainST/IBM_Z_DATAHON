@@ -74,6 +74,7 @@ scores:
 | Xenophobia ("go back to your country") and dehumanizing claims ("all immigrants are criminals") | harm ≥ 0.92, race / religion / gender | 100 % (2) and 89.3 % (28) | 0.3 in 10,000 |
 | A plain insult: Model 2 says insult, no rule, no identity attacked | harm ≤ 0.72 | | |
 | An identity only mentioned (no slur, label, claim about the group or hostile word) | scored again without the identity words; the lower score stays | | |
+| A sentence objecting to a harm ("stop making gay jokes", "how is making fun of trans people funny?"), no slur or label | scored again without the identity and the harm objected to; the lower score stays | of 76 training messages with an identity, 93 % are labelled harmful: keyword-collected tweets that speak up against the jokes | |
 | Not addressed to the reader, a harm named ("racism", "i was bullied") or names reported ("some kids keep calling me fat and ugly") | scored again without those words; the lower score stays | of the 56 training messages that report names, 10 are scored again (the others have a listed word or attack an identity), 4 of them labelled harmful | |
 | Harm spread over sentences ("you! you blocked me worm why!!"; "leave our country. we don't want you arabs here.") | a message of up to 300 characters is scored as a whole too, identity mentions as above; at most yellow | | |
 

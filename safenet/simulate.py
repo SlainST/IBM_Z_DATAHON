@@ -16,10 +16,13 @@ minutes later. Memory store only: nothing on the server or in Postgres is touche
 used (the fallback rules without them).
 """
 import argparse
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
+
+import kimlik
 
 from safenet.engine.moderator import Moderator
 from safenet.ml.models import Models
@@ -34,6 +37,15 @@ START = datetime(2026, 10, 18, 9, 0, tzinfo=timezone.utc)
 # PDF section 9: at least 90 % of the users who should be restricted are, at most 5 % of the others, and in every
 # bullying conversation the victim stops receiving the bully's messages.
 SHOULD_AT_LEAST, SHOULD_NOT_AT_MOST = 0.90, 0.05
+# Who should be restricted: the user types of sohbet_simulasyonu.py, and anyone who sent a threat (the data's label)
+# or a slur (kimlik.py's list). Normal users and victims get 2 % harmful messages at random and a repentant user
+# starts with two, sometimes a threat or a slur; one such message restricts its sender by the design's points
+# (red 25 + targeted identity 30 x 1.5 in 1:1). The user types alone are reported too (persona_*).
+_SLUR = re.compile(r"\b(?:" + "|".join(kimlik.HAKARETLER.values()) + r")\b")
+
+
+def severe(m) -> bool:
+    return m.zararli == 1 and (m.tur == "tehdit" or bool(_SLUR.search(str(m.metin).lower())))
 
 
 def load() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -47,7 +59,8 @@ def replay(chats: pd.DataFrame, users: pd.DataFrame, platform: str, models: Mode
     store = MemoryStore()
     store.open()
     mod = Moderator(store, models=models)
-    seen = {u: {"blocked": 0, "warned": False, "protected_at": None, "harmful_sent": False, "first_restriction": None}
+    seen = {u: {"blocked": 0, "warned": False, "protected_at": None, "harmful_sent": False, "first_restriction": None,
+                "severe": False}
             for u in users["gonderen"]}
     bullies = set(users.loc[users["kullanici_tipi"] == "zorba", "gonderen"])
     exposure = {}                 # bully -> harmful messages the victim still got before the protection began
@@ -57,6 +70,7 @@ def replay(chats: pd.DataFrame, users: pd.DataFrame, platform: str, models: Mode
                       now=START + timedelta(seconds=float(m.zaman_sn)))
         u = seen[m.gonderen]
         u["harmful_sent"] |= m.zararli == 1
+        u["severe"] |= severe(m)
         if r["suggested_action"] == "restrict_sender" and u["first_restriction"] is None:
             u["first_restriction"] = "after a harmful message" if u["harmful_sent"] else "harmless messages only"
         u["blocked"] += r["decision"] == "block"
@@ -71,7 +85,8 @@ def replay(chats: pd.DataFrame, users: pd.DataFrame, platform: str, models: Mode
     for u in users.itertuples():
         state = store.user(platform, GROUP, u.gonderen)
         rows.append({"platform": platform, "user": u.gonderen, "conversation": u.sohbet_id, "type": u.kullanici_tipi,
-                     "should_restrict": bool(u.susturulmali), "messages": int(u.mesaj_sayisi),
+                     "should_restrict": bool(u.susturulmali) or seen[u.gonderen]["severe"],
+                     "persona_should": bool(u.susturulmali), "messages": int(u.mesaj_sayisi),
                      "harmful": int(u.zararli_mesaj), "restricted": state["restrictions"] > 0,
                      "restrictions": state["restrictions"], "warned": seen[u.gonderen]["warned"],
                      "first_restriction": seen[u.gonderen]["first_restriction"],
@@ -86,7 +101,10 @@ def replay(chats: pd.DataFrame, users: pd.DataFrame, platform: str, models: Mode
 
 def summary(users: pd.DataFrame, bullying: list) -> dict:
     should, should_not = users[users["should_restrict"]], users[~users["should_restrict"]]
+    persona, persona_not = users[users["persona_should"]], users[~users["persona_should"]]
     return {
+        "persona_restricted_of_should": round(float(persona["restricted"].mean()), 3),
+        "persona_restricted_of_should_not": round(float(persona_not["restricted"].mean()), 3),
         "users": len(users),
         "restricted_of_should": round(float(should["restricted"].mean()), 3),
         "restricted_of_should_not": round(float(should_not["restricted"].mean()), 3),

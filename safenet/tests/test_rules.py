@@ -118,6 +118,10 @@ def test_without_identity():
     ("my gay friend was bullied", False, (True, True)),
     ("some kids keep calling me fat and ugly", False, (False, True)),   # a victim reports names
     ("you keep calling me fat and ugly", True, (False, False)),
+    ("can u stop making gay jokes and rape jokes", True, (True, "condemn")),   # objecting to a harm
+    ("how is making fun of trans people funny?", False, (True, "condemn")),
+    ("stop making jokes you dumb gay", True, (False, False)),                   # a label for the reader
+    ("rape jokes are funny", False, (False, False)),
     ("see you tomorrow", True, (False, False)),
     ("i'm not sexist but women just shouldn't be announcers", False, (False, False)),   # the disclaimer
     ("call me racist, but racism isn't real", False, (False, False)),
