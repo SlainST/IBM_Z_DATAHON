@@ -181,6 +181,29 @@ Sayfada Ayşe'nin ne gördüğü (teslim / yıldızlı / moderatörde / engellen
 Ali'nin gizli puanı ve Ali → Ayşe ilişkisi görünür; üstten platform (sosyal / okul / oyun) seçilir, soldaki örneklere
 tıklamak yeterli. Anahtarlar tarayıcıya gitmez. Komut satırı demosu: `python demo.py`.
 
+## Telefonda test: Telegram ve WhatsApp
+
+**Telegram (canlı):** bot her mesajı canlı SafeNet'ten geçirir. @BotFather'da `/newbot` ile token alın, `/setprivacy`
+→ bot → **Disable**. Sonra:
+
+```bash
+cd safenet
+python client/telegram_bot.py --token <token> --keys-file C:\Users\<sen>\Downloads\api_keys.env   # --platform demo_okul
+```
+
+Bota özel mesaj yazın: her mesaja alıcının ne göreceğini cevaplar (karar, sebep, kategori, puan, süre). Gruba ekleyip
+"mesaj silme" ve "üyeleri kısıtlama" yetkili yönetici yaparsanız grubu yönetir: zararlıyı siler, küfrü yıldızlayıp
+yeniden yazar, uyarır, kısıtlanan kişiyi süre bitene kadar susturur. Birine cevap (reply) olarak yazılan mesaj o kişiye
+yazılmış sayılır (A → B koruması).
+
+**WhatsApp (sohbet dökümü):** WhatsApp kişisel mesajlara anlık erişime izin vermiyor; sohbeti telefonda "Sohbeti dışa
+aktar" (medyasız) ile .txt alıp geçirin: her mesajda karşı tarafın ne göreceği çıkar. Önce tünel
+(`ssh -N -L 8000:127.0.0.1:8000 safenet`), sonra:
+
+```bash
+SAFENET_KEY=<demo_sosyal anahtarı> python client/whatsapp_chat.py sohbet.txt --only-flagged
+```
+
 ## Çalıştırma
 
 Lokalde (laptop):
