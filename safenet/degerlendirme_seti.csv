@@ -1,0 +1,105 @@
+﻿id,metin,tur,zarar,kategori,demo_sosyal,demo_okul,demo_oyun,neden,ilgili_karar,aciklama
+D001,see you tomorrow at practice,temiz,yok,,allow,allow,allow,,,günlük sohbet
+D002,did you finish the math homework?,temiz,yok,,allow,allow,allow,,,günlük sohbet
+D003,lol that meme is hilarious,temiz,yok,,allow,allow,allow,,,günlük sohbet
+D004,can we play after dinner?,temiz,yok,,allow,allow,allow,,,günlük sohbet
+D005,thanks for helping me with the project!,temiz,yok,,allow,allow,allow,,,günlük sohbet
+D006,my mom said I can come to your party,temiz,yok,,allow,allow,allow,,,günlük sohbet
+D007,"I'm so tired, good night",temiz,yok,,allow,allow,allow,,,günlük sohbet
+D008,"I don't like the new Spider-Man movie, it was boring",temiz,yok,,allow,allow,allow,,,olumsuz ama zararsız görüş
+D009,"my dog died yesterday, I'm so sad",temiz,yok,,allow,allow,allow,,,'died' oyun dili kelimesi ama burada üzüntü
+D010,"gg wp, that was a close match",oyun_sohbeti,yok,,allow,allow,allow,,,oyun sonu sohbeti
+D011,that boss fight killed me so many times,oyun_sohbeti,yok,,allow,allow,allow,,9,kimseye yönelik değil; 'killed' oyun dili
+D012,we need to attack their base before they respawn,oyun_sohbeti,yok,,allow,allow,allow,,9,oyun taktiği; 'attack' oyun dili
+D013,"gg, I will kill you next round",oyun_sohbeti,yuksek,threat,block,block,allow,threat,9,oyun profilinde oyun dili serbest; diğerlerinde tehdit (takımın test_game_words_free testi)
+D014,I'm going to kill it at the exam tomorrow,deyim,yok,,allow,allow,allow,,9,deyim: 'kill it' = çok iyi yapmak; tehdit değil
+D015,I fed the duck at the lake,benzer_kelime,yok,,allow,allow,allow,,,duck/fuck (karistirilabilir_kelimeler.csv)
+D016,my class starts at 9,benzer_kelime,yok,,allow,allow,allow,,,kelime içinde küfür (class/ass)
+D017,we're driving through Scunthorpe tomorrow,benzer_kelime,yok,,allow,allow,allow,,,Scunthorpe sorunu
+D018,she plays an assassin in the new game,benzer_kelime,yok,,allow,allow,allow,,,kelime içinde küfür (assassin)
+D019,I need to count my money first,benzer_kelime,yok,,allow,allow,allow,,,count/cunt
+D020,the cocktail bar was already closed,benzer_kelime,yok,,allow,allow,allow,,,kelime içinde küfür (cocktail)
+D021,can you pass me the duct tape?,benzer_kelime,yok,,allow,allow,allow,,,tape/rape
+D022,my house is bigger than yours,benzer_kelime,yok,,allow,allow,allow,,,bigger (ırkçı hakarete bir harf uzak)
+D023,I caught a huge carp at the river,benzer_kelime,yok,,allow,allow,allow,,,carp/crap
+D024,"oh fudge, I forgot my homework",benzer_kelime,yok,,allow,allow,allow,,,"yumuşatılmış (fudge), listede yok"
+D025,what the heck is going on?,benzer_kelime,yok,,allow,allow,allow,,,"yumuşatılmış (heck), listede yok"
+D026,this is freaking awesome,benzer_kelime,yok,,allow,allow,allow,,,"yumuşatılmış (freaking), listede yok"
+D027,I'm a proud Muslim and I fast during Ramadan,kimlik_bahsetme,yok,,allow,allow,allow,,,kimlik kelimesinin geçmesi ceza sebebi değil (PDF 6)
+D028,my best friend is gay and he's awesome,kimlik_bahsetme,yok,,allow,allow,allow,,,"bahsetme, saldırı yok"
+D029,happy Diwali to all my Hindu friends!,kimlik_bahsetme,yok,,allow,allow,allow,,,"bahsetme, saldırı yok"
+D030,she's the first black woman to win that award,kimlik_bahsetme,yok,,allow,allow,allow,,,"bahsetme, saldırı yok"
+D031,my grandma is Jewish and makes the best soup,kimlik_bahsetme,yok,,allow,allow,allow,,,"bahsetme, saldırı yok"
+D032,women's football is getting really popular,kimlik_bahsetme,yok,,allow,allow,allow,,,"bahsetme, saldırı yok"
+D033,I was bullied at school today and I don't want to go back,kurban_anlatimi,yok,,allow,allow,allow,,,kurban susturulmasın (PDF 4)
+D034,some kids keep calling me fat and ugly,kurban_anlatimi,yok,,allow,allow,allow,,,"hakaret aktarılıyor, kimseye yönelik değil"
+D035,can you tell the teacher that Mark keeps pushing me?,kurban_anlatimi,yok,,allow,allow,allow,,,yardım istiyor
+D036,I hate it when people make fun of my accent,kurban_anlatimi,yok,,allow,allow,allow,,,'hate' geçiyor ama kimseye yönelik değil
+D037,"f*ck, I missed the bus again",gizli_kufur,yok,,censor,censor,censor,profanity,,"PDF örneği: sadece küfür, kötü niyet yok"
+D038,this movie is fucking amazing,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,övgü içinde küfür
+D039,"holy shit, that was insane",kufur_saldirisiz,yok,,censor,censor,censor,profanity,,şaşırma
+D040,"damn, I forgot my keys again",kufur_saldirisiz,yok,,censor,censor,censor,profanity,,en hafif küfür (seviye 1)
+D041,what the hell happened to the wifi?,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,hafif küfür
+D042,"sh1t, my phone just died",gizli_kufur,yok,,censor,censor,censor,profanity,,gizlenmiş küfür (sh1t)
+D043,this homework is bullshit honestly,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,şikayet
+D044,my brother is being a pain in the ass today,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,üçüncü kişi hakkında hafif şikayet
+D045,that concert was so fucking good,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,övgü içinde küfür
+D046,I'm so pissed my team lost,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,hayal kırıklığı
+D047,the f u c k i n g bus is late again,gizli_kufur,yok,,censor,censor,censor,profanity,,aralıklı yazılmış küfür
+D048,this pizza is crappy but I'm starving,kufur_saldirisiz,yok,,censor,censor,censor,profanity,,hafif küfür
+D049,Have you read Moby Dick?,listede_masum,yok,,censor,censor,censor,profanity,,"listedeki her kelime her zaman sansürlenir (PDF 6), özel isim olsa da"
+D050,I fed the fuck at the lake,yazim_hatasi,yok,,censor,censor,censor,profanity,8,duck yazılmak istenmiş; takımın test_possible_typo testi
+D051,"please shit the door, it's cold",yazim_hatasi,yok,,censor,censor,censor,profanity,8,shut yazılmak istenmiş
+D052,"nice shit, you scored!",yazim_hatasi,yok,,censor,censor,censor,profanity,8,shot yazılmak istenmiş
+D053,damn,kufur_orani,yok,,block,block,block,profanity_ratio,1,karar 1: 1/1 kelime küfür
+D054,hell yeah,kufur_orani,yok,,block,block,block,profanity_ratio,1,karar 1: 1/2 kelime küfür
+D055,oh shit,kufur_orani,yok,,block,block,block,profanity_ratio,1,karar 1: 1/2 kelime küfür
+D056,this is shit,kufur_orani,yok,,block,block,block,profanity_ratio,1,karar 1: 1/3 kelime küfür; takımın test_short_profane_message testi
+D057,fuck you,kufur_orani,orta,,block,block,block,profanity_ratio,1,karar 1: 1/2 kelime küfür
+D058,wtf,kufur_orani,yok,,block,block,block,profanity_ratio,1,karar 1: kısaltma da liste kelimesi
+D059,what the fuck,kufur_orani,yok,,block,block,block,profanity_ratio,1,karar 1: 1/3 kelime küfür
+D060,stfu,kufur_orani,orta,,block,block,block,profanity_ratio,1,karar 1: kısaltma da liste kelimesi
+D061,you're a dumbass,kufur_orani,orta,,block,block,block,profanity_ratio,1,karar 1: 1/3 kelime küfür
+D062,fuck fuck fuck shit,kufur_orani,yok,,block,block,block,profanity_ratio,1,küfür yağmuru
+D063,you are an idiot,hakaret,orta,insult,censor,hold,censor,harmful,,sarı: okulda beklet; takımın test_yellow testi
+D064,"you're so stupid, nobody asked you",hakaret,orta,insult,censor,hold,censor,harmful,,sarı
+D065,"you're such a loser, seriously",hakaret,orta,insult,censor,hold,censor,harmful,,sarı
+D066,you're a fucking idiot,hakaret,orta,insult,censor,hold,censor,harmful,,sarı; kelimesiz hali ('you're a idiot') de hakaret ama çok kötü değil
+D067,you're such a bitch,hakaret,orta,insult,censor,hold,censor,harmful,,sarı; hakaret küfrün kendisinde
+D068,"go cry to your mommy, crybaby",hakaret,orta,insult,censor,hold,censor,harmful,,sarı
+D069,you're so fat lol,hakaret,orta,insult,censor,hold,censor,harmful,,sarı; görünüşle alay
+D070,"shut up, nobody cares what you think",hakaret,orta,insult,censor,hold,censor,harmful,,sarı
+D071,thanks for the notes. you're still an idiot though,karisik,orta,insult,censor,hold,censor,harmful,,en kötü cümle bütün mesajın kaderini belirler
+D072,"fuck you, nobody likes you",agir_zorbalik,yuksek,insult,block,block,block,very_harmful,,PDF 6 örneği: küfür çıkarılınca da kötü niyet kalıyor
+D073,"nobody likes you, just leave the group chat",agir_zorbalik,yuksek,insult,block,block,block,very_harmful,,dışlama
+D074,you're worthless and everyone at school knows it,agir_zorbalik,yuksek,insult,block,block,block,very_harmful,,aşağılama
+D075,everyone would be happier if you just disappeared,agir_zorbalik,yuksek,insult,block,block,block,very_harmful,,ölüm/yok olma imaları
+D076,if you tell anyone I'll break your legs,tehdit,yuksek,threat,block,block,block,threat,,açık tehdit
+D077,I know where you live,tehdit,yuksek,threat,block,block,block,threat,,takip tehdidi
+D078,watch your back tomorrow after school,tehdit,yuksek,threat,block,block,block,threat,,tehdit
+D079,I'm going to find you and beat you up,tehdit,yuksek,threat,block,block,block,threat,9,'beat' oyun dili ama oyun bağlamı yok
+D080,I hope you die in a fire,tehdit,yuksek,threat,block,block,block,threat,9,'die' oyun dili ama oyun bağlamı yok (ayarlar.toml: sadece oyun bağlamında serbest)
+D081,you are dead after school,tehdit,yuksek,threat,block,block,block,threat,9,'dead' oyun dili ama oyun bağlamı yok
+D082,I will kill you and your whole family,tehdit,yuksek,threat,block,block,block,threat,9,'kill' oyun dili ama oyun bağlamı yok
+D083,send me your address or I'll post your pics everywhere,tehdit,yuksek,threat,block,block,block,threat,,şantaj
+D084,Great match yesterday Mark. But if you show up on Friday I'll f*cking break your legs.,karisik,yuksek,threat,block,block,block,threat,,PDF 2-3 örneği: masum cümle mesajı kurtarmaz
+D085,kys,kendine_zarar,yuksek,threat,block,block,block,threat,,listede seviye 10
+D086,kill yourself,kendine_zarar,yuksek,threat,block,block,block,threat,9,listede seviye 10 (kys'nin açık yazılışı); oyun dili sayılmaz
+D087,"you should kill yourself, loser",kendine_zarar,yuksek,threat,block,block,block,threat,9,listede seviye 10; oyun dili sayılmaz
+D088,"He told me ""I will kill you tomorrow"".",alinti_tehdit,yuksek,threat,hold,hold,hold,quoted_threat,5;9,aktarılan tehdit moderatöre gider; takımın test_quoted_threat testi
+D089,"She texted me ""I will find you after school"".",alinti_tehdit,yuksek,threat,hold,hold,hold,quoted_threat,5,aktarılan tehdit
+D090,"my brother keeps saying ""I know where you live"" to scare me",alinti_tehdit,yuksek,threat,hold,hold,hold,quoted_threat,5,aktarılan tehdit
+D091,"someone wrote ""watch your back"" on my locker",alinti_tehdit,yuksek,threat,hold,hold,hold,quoted_threat,5,aktarılan tehdit
+D092,you dirty muslim,nefret,yuksek,religion,block,block,block,hate,2,hedefli kimlik saldırısı; takımın test_targeted_hate testi
+D093,muslims are terrorists,nefret,yuksek,religion,block,block,block,hate,,genelleme
+D094,"go back to your country, you don't belong here",nefret,yuksek,race,block,block,block,hate,,köken üzerinden dışlama
+D095,women are too stupid to play this game,nefret,yuksek,gender,block,block,block,hate,,genelleme
+D096,go back to China you chink,nefret,yuksek,race,block,block,block,hate,,ırkçı hakaret + dışlama
+D097,"all immigrants are criminals, they should all leave",nefret,yuksek,race,block,block,block,hate,,genelleme
+D098,you're such a faggot,nefret,yuksek,gender,censor,hold,censor,harmful,,hakaret kelimesi yıldızlanır; kelimesiz kısım zararsız -> kırmızı değil sarı (PDF 6)
+D099,send me a pic of you in your underwear,cinsel,yuksek,sexual,block,block,block,very_harmful,,cinsel taciz
+D100,send me nudes or I'll tell everyone you're a slut,cinsel,yuksek,,block,block,block,,,cinsel şantaj (tehdit ya da çok zararlı)
+D101,free robux at http://bit.ly/a1 http://bit.ly/a2 http://bit.ly/a3,spam,yok,,block,block,block,spam,10,3 link
+D102,lol lol lol lol lol lol lol lol lol lol,spam,yok,,block,block,block,spam,10,tek kelime tekrarı
+D103,follow me follow me follow me follow me follow me follow me follow me follow me,spam,yok,,block,block,block,spam,10,kalıp tekrarı
+D104,check out my new video https://youtube.com/watch?v=abc123,spam,yok,,allow,allow,allow,,10,tek link spam değil
