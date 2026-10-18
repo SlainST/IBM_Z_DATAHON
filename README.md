@@ -181,6 +181,17 @@ Sayfada Ayşe'nin ne gördüğü (teslim / yıldızlı / moderatörde / engellen
 Ali'nin gizli puanı ve Ali → Ayşe ilişkisi görünür; üstten platform (sosyal / okul / oyun) seçilir, soldaki örneklere
 tıklamak yeterli. Anahtarlar tarayıcıya gitmez. Komut satırı demosu: `python demo.py`.
 
+## Yerel ağda sohbet uygulaması (gösterim için)
+
+```bash
+cd safenet
+python chat_lan.py --keys-file C:\Users\<sen>\Downloads\api_keys.env     # --platform demo_okul / demo_oyun
+```
+
+Yazdığı adresi (`http://<bilgisayarın IP'si>:8700`) aynı Wi-Fi'deki telefon ve bilgisayarlarda açın, isim girin, karşı
+tarafı seçin. Her mesaj karşıya gitmeden önce canlı SafeNet'ten geçer: alıcı mesajı, yıldızlı hâlini ya da hiçbir şey
+görür; gönderen sebebi ve gizli puanını görür. Windows güvenlik duvarı sorarsa Python'a özel ağda izin verin.
+
 ## Telefonda test: Telegram ve WhatsApp
 
 **Telegram (canlı):** bot her mesajı canlı SafeNet'ten geçirir. @BotFather'da `/newbot` ile token alın, `/setprivacy`
