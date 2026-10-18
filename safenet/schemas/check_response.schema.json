@@ -1,0 +1,335 @@
+{
+  "$defs": {
+    "HiddenWord": {
+      "additionalProperties": false,
+      "properties": {
+        "written": {
+          "title": "Written",
+          "type": "string"
+        },
+        "word": {
+          "title": "Word",
+          "type": "string"
+        }
+      },
+      "required": [
+        "written",
+        "word"
+      ],
+      "title": "HiddenWord",
+      "type": "object"
+    },
+    "Offsets": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Offsets",
+      "type": "object"
+    },
+    "RelationStanding": {
+      "additionalProperties": false,
+      "properties": {
+        "blocked": {
+          "title": "Blocked",
+          "type": "boolean"
+        },
+        "change": {
+          "title": "Change",
+          "type": "number"
+        }
+      },
+      "required": [
+        "blocked",
+        "change"
+      ],
+      "title": "RelationStanding",
+      "type": "object"
+    },
+    "SenderStanding": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "normal",
+            "warned",
+            "restricted"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "change": {
+          "title": "Change",
+          "type": "number"
+        },
+        "restrictions": {
+          "title": "Restrictions",
+          "type": "integer"
+        },
+        "restricted_until": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "ISO 8601, UTC",
+          "title": "Restricted Until"
+        }
+      },
+      "required": [
+        "level",
+        "change",
+        "restrictions",
+        "restricted_until"
+      ],
+      "title": "SenderStanding",
+      "type": "object"
+    },
+    "Typo": {
+      "additionalProperties": false,
+      "properties": {
+        "word": {
+          "title": "Word",
+          "type": "string"
+        },
+        "suggestion": {
+          "title": "Suggestion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "word",
+        "suggestion"
+      ],
+      "title": "Typo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "key": {
+      "title": "Key",
+      "type": "string"
+    },
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "group": {
+      "title": "Group",
+      "type": "string"
+    },
+    "sender": {
+      "title": "Sender",
+      "type": "string"
+    },
+    "recipient": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Recipient"
+    },
+    "message_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Message Id"
+    },
+    "decision": {
+      "enum": [
+        "allow",
+        "censor",
+        "hold",
+        "block"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "recipient_sees": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Recipient Sees"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "threat",
+            "hate",
+            "very_harmful",
+            "profanity_ratio",
+            "spam",
+            "quoted_threat",
+            "harmful",
+            "profanity",
+            "sender_restricted",
+            "relation_blocked"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reason"
+    },
+    "worst_sentence": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Worst Sentence"
+    },
+    "harm": {
+      "title": "Harm",
+      "type": "number"
+    },
+    "wordless_harm": {
+      "title": "Wordless Harm",
+      "type": "number"
+    },
+    "category": {
+      "anyOf": [
+        {
+          "enum": [
+            "insult",
+            "gender",
+            "religion",
+            "race",
+            "sexual",
+            "threat"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Category"
+    },
+    "key_words": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Words",
+      "type": "array"
+    },
+    "censored": {
+      "items": {
+        "$ref": "#/$defs/Offsets"
+      },
+      "title": "Censored",
+      "type": "array"
+    },
+    "hidden_profanity": {
+      "items": {
+        "$ref": "#/$defs/HiddenWord"
+      },
+      "title": "Hidden Profanity",
+      "type": "array"
+    },
+    "possible_typos": {
+      "items": {
+        "$ref": "#/$defs/Typo"
+      },
+      "title": "Possible Typos",
+      "type": "array"
+    },
+    "sender_standing": {
+      "$ref": "#/$defs/SenderStanding"
+    },
+    "relation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RelationStanding"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "suggested_action": {
+      "anyOf": [
+        {
+          "enum": [
+            "warn_sender",
+            "restrict_sender"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Suggested Action"
+    },
+    "replayed": {
+      "title": "Replayed",
+      "type": "boolean"
+    },
+    "latency_ms": {
+      "title": "Latency Ms",
+      "type": "number"
+    }
+  },
+  "required": [
+    "key",
+    "platform",
+    "group",
+    "sender",
+    "recipient",
+    "message_id",
+    "decision",
+    "recipient_sees",
+    "reason",
+    "worst_sentence",
+    "harm",
+    "wordless_harm",
+    "category",
+    "key_words",
+    "censored",
+    "hidden_profanity",
+    "possible_typos",
+    "sender_standing",
+    "relation",
+    "suggested_action",
+    "replayed",
+    "latency_ms"
+  ],
+  "title": "CheckResponse",
+  "type": "object"
+}

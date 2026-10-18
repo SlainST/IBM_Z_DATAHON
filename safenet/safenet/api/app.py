@@ -14,7 +14,7 @@ from ..engine import points as pts
 from ..engine.moderator import Moderator
 from ..state.store import StoreUnavailable, make_store, utcnow
 from .auth import KEYS, require_platform
-from .schemas import BatchRequest, CheckRequest
+from .schemas import BatchRequest, BatchResponse, CheckRequest, CheckResponse
 
 log = logging.getLogger("safenet")
 BUCKETS_MS = (0.5, 1, 2, 5, 10, 25, 50, 100, 250, 1000)
@@ -80,12 +80,12 @@ def _check(platform: str, req: CheckRequest) -> dict:
     return answer
 
 
-@app.post("/v1/check")
+@app.post("/v1/check", response_model=None, responses={200: {"model": CheckResponse}})
 def check(req: CheckRequest, platform: str = Depends(require_platform)) -> dict:
     return _check(platform, req)
 
 
-@app.post("/v1/check/batch")
+@app.post("/v1/check/batch", response_model=None, responses={200: {"model": BatchResponse}})
 def check_batch(req: BatchRequest, platform: str = Depends(require_platform)) -> dict:
     return {"results": [_check(platform, m) for m in req.messages]}
 

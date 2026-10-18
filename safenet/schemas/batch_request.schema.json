@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "CheckRequest": {
+      "additionalProperties": false,
+      "examples": [
+        {
+          "group_id": "t_77",
+          "message_id": "m_000123",
+          "recipient_id": "u_1093",
+          "sender_id": "u_4821",
+          "text": "Great match yesterday Mark. But if you show up on Friday I'll f*cking break your legs."
+        }
+      ],
+      "properties": {
+        "sender_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+          "title": "Sender Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "recipient_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recipient Id"
+        },
+        "group_id": {
+          "default": "general",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+          "title": "Group Id",
+          "type": "string"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[^/\\x00-\\x1f\\x7f]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Id"
+        }
+      },
+      "required": [
+        "sender_id",
+        "text"
+      ],
+      "title": "CheckRequest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/CheckRequest"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Messages",
+      "type": "array"
+    }
+  },
+  "required": [
+    "messages"
+  ],
+  "title": "BatchRequest",
+  "type": "object"
+}

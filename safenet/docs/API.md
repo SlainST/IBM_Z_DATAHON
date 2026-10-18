@@ -2,8 +2,9 @@
 
 What a platform adapter (the team's `config.py` for WhatsApp, YouTube, the notebook test...) sends and
 gets back. The design is section 2 of `SafeNet_Model_Tasarimi.pdf`; its field names were a draft, so the
-API uses the English names in the table at the end. JSON Schema of every body: `schemas/*.schema.json`.
-Every worker also serves the OpenAPI page at `/docs`.
+API uses the English names in the table at the end. JSON Schema of every body: `schemas/*.schema.json`
+(`python scripts/write_schemas.py`; `tests/test_api.py` checks real answers against them). Every worker also
+serves the OpenAPI page at `/docs`, answers included.
 
 Any worker on any server gives the same answer: points live in Postgres (`docs/STATE.md`).
 
@@ -23,7 +24,7 @@ Any worker on any server gives the same answer: points live in Postgres (`docs/S
 ## Authentication
 
 Every `/v1` call carries the platform's key in the `X-API-Key` header. The key decides the platform, and
-the platform's block in `config/ayarlar.toml` decides the rules: a request never carries settings, a
+the platform's block in `ayarlar.toml` decides the rules: a request never carries settings, a
 profile or a platform id (PDF decision 21).
 
 - New key: `python scripts/new_api_key.py demo_okul`. It prints the key once and stores only its SHA-256
@@ -126,7 +127,7 @@ its own transaction, as if sent one by one, so a later message sees the points o
 | Status | Why | What to do |
 |---|---|---|
 | 401 | No `X-API-Key`, or an unknown key | Fix the key. |
-| 403 | The key's platform has no `[platformlar.<id>]` block in `ayarlar.toml` | Add the block and restart. |
+| 403 | The key's platform has no `[platform.<id>]` block in `ayarlar.toml` | Add the block and restart. |
 | 422 | Body doesn't match: missing field, unknown field, text too long, bad id | `detail` names each field. |
 | 413, 429 | From nginx: body over 2 MB, or the rate limit | Slow down. |
 | 503 + `Retry-After: 1` | Postgres unreachable, too slow or read-only (failover) | Retry with the same `message_id`. |
