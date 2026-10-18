@@ -1,6 +1,7 @@
 """Sentences, possible typos, game words, quotes and spam: the small text rules around the models."""
 import csv
 import re
+from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -63,14 +64,30 @@ def possible_typo(sentence: str, offset: int, hit, min_clues: int) -> dict | Non
 
 
 @lru_cache(maxsize=1)
-def _game_words() -> re.Pattern:
-    words = sorted({r["kelime"] for r in confusables() if r["kategori"] == "oyun_dili"}, key=len, reverse=True)
-    return re.compile(r"\b(?:" + "|".join(map(re.escape, words)) + r")(?:s|d|ed|ing|er|ers)?\b", re.I)
+def _game_words() -> tuple[re.Pattern, dict]:
+    rows = [r for r in confusables() if r["kategori"] == "oyun_dili"]
+    words = sorted({r["kelime"] for r in rows}, key=len, reverse=True)
+    pattern = re.compile(r"\b(" + "|".join(map(re.escape, words)) + r")(?:s|d|ed|ing|er|ers)?\b", re.I)
+    return pattern, {r["kelime"]: r["clues"] for r in rows}
 
 
-def without_game_words(sentence: str) -> str:
-    """oyun_dili_serbest: 'kill / die / destroy' are taken out before the models score the sentence."""
-    return _game_words().sub(" ", sentence)
+def without_game_words(sentence: str, offset: int = 0, hits=()) -> str:
+    """oyun_dili_serbest: 'kill / die / destroy' are taken out before the models score the sentence, but only
+    with one of the word's game clues (match, round, gg...) within CLUE_DISTANCE words, and never inside a
+    listed phrase ('kill yourself'). 'I hope you die in a fire' keeps its 'die'."""
+    pattern, clues = _game_words()
+    words = [(m.start(), m.group(0).lower()) for m in _WORD.finditer(sentence)]
+    out, at = [], 0
+    for m in pattern.finditer(sentence):
+        if any(h.start - offset < m.end() and m.start() < h.end - offset for h in hits):
+            continue
+        i = next((k for k, (pos, _) in enumerate(words) if pos >= m.start()), len(words))
+        near = {w for _, w in words[max(0, i - CLUE_DISTANCE):i + CLUE_DISTANCE + 1]}
+        if near & clues.get(m.group(1).lower(), set()):
+            out.append(sentence[at:m.start()] + " ")
+            at = m.end()
+    out.append(sentence[at:])
+    return "".join(out)
 
 
 _QUOTED = re.compile(r"[\"“”«»„]([^\"“”«»„]{3,})[\"“”«»„]")
@@ -93,12 +110,35 @@ def quoted(text: str, span: Span, previous: Span | None) -> bool:
 _LINK = re.compile(r"https?://|www\.", re.I)
 
 
+SPAM_REPEATS = 8       # a word or phrase repeated at least this many times ...
+SPAM_SHARE = 0.6       # ... making up more than this share of the words
+SPAM_PHRASE = 3        # phrases of up to this many words ("follow me" x 8)
+
+
+def _repeated(words: list[str], n: int) -> bool:
+    """Is one n-word phrase repeated SPAM_REPEATS times without overlapping, covering more than SPAM_SHARE?"""
+    need = max(SPAM_REPEATS, int(SPAM_SHARE * len(words) / n) + 1)
+    grams = Counter(tuple(words[i:i + n]) for i in range(len(words) - n + 1))
+    for gram, seen in grams.items():
+        if seen < need:
+            continue
+        count = i = 0
+        while i <= len(words) - n:
+            if tuple(words[i:i + n]) == gram:
+                count, i = count + 1, i + n
+            else:
+                i += 1
+        if count >= need:
+            return True
+    return False
+
+
 def spam(text: str) -> bool:
-    """3 or more links, or one word repeated at least 8 times making up more than 60 % of the words."""
+    """3 or more links, or one word or short phrase repeated at least 8 times making up more than 60 % of the
+    words."""
     if len(_LINK.findall(text)) >= 3:
         return True
     words = [w.lower() for w in _WORD.findall(text)]
-    if len(words) < 8:
+    if len(words) < SPAM_REPEATS:
         return False
-    top = max(words.count(w) for w in set(words))
-    return top >= 8 and top / len(words) > 0.6
+    return any(_repeated(words, n) for n in range(1, SPAM_PHRASE + 1))

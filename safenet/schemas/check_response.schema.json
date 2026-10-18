@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckResponse",
+  "description": "The answer of POST /v1/check (docs/API.md). Written by hand; tests/test_schemas.py checks real answers against it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["key", "platform", "group", "sender", "recipient", "message_id", "decision", "recipient_sees",
+               "reason", "worst_sentence", "harm", "wordless_harm", "category", "key_words", "censored",
+               "hidden_profanity", "possible_typos", "sender_standing", "relation", "suggested_action", "replayed"],
+  "properties": {
+    "key": {"type": "string", "description": "platform/group/sender: the row whose points changed"},
+    "platform": {"type": "string"},
+    "group": {"type": "string"},
+    "sender": {"type": "string"},
+    "recipient": {"type": ["string", "null"]},
+    "message_id": {"type": ["string", "null"]},
+    "decision": {"enum": ["allow", "censor", "hold", "block"]},
+    "recipient_sees": {"type": ["string", "null"], "description": "null for hold and block"},
+    "reason": {"enum": ["threat", "hate", "very_harmful", "profanity_ratio", "spam", "quoted_threat", "harmful",
+                        "profanity", "sender_restricted", "relation_blocked", null]},
+    "worst_sentence": {"type": ["string", "null"], "description": "starred; null when allowed"},
+    "harm": {"type": "number", "minimum": 0, "maximum": 1},
+    "wordless_harm": {"type": "number", "minimum": 0, "maximum": 1},
+    "category": {"enum": ["insult", "gender", "religion", "race", "sexual", "threat", null]},
+    "key_words": {"type": "array", "items": {"type": "string"}},
+    "censored": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["start", "end"],
+                "properties": {"start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 0}}}
+    },
+    "hidden_profanity": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["written", "word"],
+                "properties": {"written": {"type": "string"}, "word": {"type": "string"}}}
+    },
+    "possible_typos": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["word", "suggestion"],
+                "properties": {"word": {"type": "string"}, "suggestion": {"type": "string"}}}
+    },
+    "sender_standing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "change", "restrictions", "restricted_until"],
+      "properties": {
+        "level": {"enum": ["normal", "warned", "restricted"]},
+        "change": {"type": "number"},
+        "restrictions": {"type": "integer", "minimum": 0},
+        "restricted_until": {"type": ["string", "null"], "description": "ISO 8601"}
+      }
+    },
+    "relation": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["blocked", "change"],
+      "properties": {"blocked": {"type": "boolean"}, "change": {"type": "number"}}
+    },
+    "suggested_action": {"enum": ["warn_sender", "restrict_sender", null]},
+    "replayed": {"type": "boolean"},
+    "latency_ms": {"type": "number", "minimum": 0, "description": "added by the HTTP layer"}
+  }
+}

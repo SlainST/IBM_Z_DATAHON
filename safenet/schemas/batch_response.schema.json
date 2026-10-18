@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BatchResponse",
+  "description": "The answer of POST /v1/check/batch: one CheckResponse per message, in order.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["results"],
+  "properties": {
+    "results": {"type": "array", "items": {"$ref": "check_response.schema.json"}}
+  }
+}

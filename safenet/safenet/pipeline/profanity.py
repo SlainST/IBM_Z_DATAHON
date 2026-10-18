@@ -14,6 +14,12 @@ LETTER = r"[^\W\d_]"
 # f u c k, s.h.i.t, f-u-c-k: three or more single letters with one or two separators between them
 SPACED = re.compile(rf"(?<!\w)(?:{LETTER}[ .\-_*]{{1,2}}){{2,}}{LETTER}(?!\w)")
 TOKEN = re.compile(r"\S+")
+# Listed phrases written out ("kys" -> "kill yourself"): the list's keys are single words, so "kill yourself"
+# itself is only found here. Phrases with a listed word of their own ("what the fuck") are left to that word.
+PHRASES = sorted({a for a in temizlik.ASIL.values()
+                  if " " in a and not any(w in temizlik.ASIL for w in a.split())}, key=len, reverse=True)
+PHRASE = re.compile(r"(?<!\w)(?:" + "|".join(r"\s+".join(map(re.escape, p.split())) for p in PHRASES) + r")(?!\w)",
+                    re.I) if PHRASES else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,7 +54,14 @@ def find(text: str) -> list[Hit]:
     hits: list[Hit] = []
     taken: list[tuple[int, int]] = []
 
+    for m in PHRASE.finditer(text) if PHRASE else ():
+        word = " ".join(m.group(0).lower().split())
+        hits.append(Hit(m.start(), m.end(), m.group(0), word, temizlik.SEVIYE.get(word, 5), False))
+        taken.append((m.start(), m.end()))
+
     for m in SPACED.finditer(text):
+        if any(s < m.end() and m.start() < e for s, e in taken):
+            continue
         positions = [m.start() + i for i, c in enumerate(m.group(0)) if c.isalpha()]
         letters = "".join(text[p].lower() for p in positions)
         done = False
