@@ -75,6 +75,18 @@ def test_every_kind_of_answer_matches_the_schema(client, text):
         assert again["replayed"] and again["decision"] == first["decision"]
 
 
+def test_every_evaluation_answer_matches_the_schema(client):
+    """All 312 answers of the team's evaluation set (degerlendirme_seti.csv on the three demo platforms), as the
+    platforms get them."""
+    import degerlendir
+    for platform in degerlendir.PLATFORMLAR:
+        for i, row in enumerate(degerlendir.oku()):
+            r = client.post("/v1/check", headers={"X-API-Key": f"dev-{platform}"},
+                            json={"sender_id": f"eval_{i}", "recipient_id": "eval_r", "text": row["metin"]})
+            assert r.status_code == 200, row["metin"]
+            schemas.CheckResponse.model_validate(r.json())
+
+
 def test_reads_match_the_schema(client):
     client.post("/v1/check", headers=KEY, json={"sender_id": "r1", "recipient_id": "r2", "group_id": "7c",
                                                  "text": "you are an idiot"})
