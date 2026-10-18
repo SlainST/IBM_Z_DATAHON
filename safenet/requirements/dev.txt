@@ -1,3 +1,6 @@
 -r server.txt
 pytest>=8
 httpx>=0.27
+# Laptops: pip has these (with numpy and scipy) for every platform but s390x, where they come from apt.
+scikit-learn>=1.4; platform_machine != "s390x"
+joblib>=1.3; platform_machine != "s390x"

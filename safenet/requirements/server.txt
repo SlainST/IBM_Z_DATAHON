@@ -7,4 +7,4 @@ pydantic>=2.6
 # httptools: without it uvicorn falls back to h11, and keep-alive requests wait ~50 ms each on
 # Nagle/delayed ACK (measured on the LinuxONE box: 155 -> 5,400 msg/s). Both build from source on s390x.
 httptools>=0.6
-uvloop>=0.19
+uvloop>=0.19; sys_platform != "win32"    # no Windows build; uvicorn uses asyncio there
