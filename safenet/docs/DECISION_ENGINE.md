@@ -112,21 +112,22 @@ code on 18 Oct. The evaluation set shows what each choice does to real messages:
    within 6 words (`karistirilabilir_kelimeler.csv`).
    **Status: bekliyor.** Checked: matches the code. A clue can also fit a real swear word: in
    "holy shit, that goal was insane" "goal" is a clue for "shot", so "shit" is starred but adds no points.
-9. **Game language** (`oyun_dili_serbest`): the words with `kategori = oyun_dili` in
-   `karistirilabilir_kelimeler.csv` are taken out before the models score the sentence, so "I will kill you
-   noob" is allowed on `demo_oyun`. Listed phrases such as "kys" and "kill yourself" are still starred,
-   scored and can still be red.
-   **Status: bekliyor.** Checked: two differences from the text above.
-   (a) The words are taken out whatever the context, while `ayarlar.toml` says they are free only "oyun
-   bağlamındaysa (match, round, gg...)" and `karistirilabilir_kelimeler.csv` gives context clues for each.
-   So on `demo_oyun` "I hope you die in a fire", "you are dead after school" and "I will kill you and your
-   whole family" are allowed.
-   (b) "kill yourself" written out is not found in the text, only `kys` is: list entries of two words are
-   not matched. It is not starred on any platform, and on `demo_oyun` it is allowed.
-10. **Spam** has points in the PDF but no rule: 3 or more links, or one word repeated at least 8 times and
-    making up more than 60 % of the message.
-    **Status: bekliyor.** Checked: the rule is in the code (`pipeline/text.py`, `spam()`), not in
-    `ayarlar.toml`. A repeated phrase is not spam: in "follow me" × 8 each word is 50 % of the message.
+9. **Game language** (`oyun_dili_serbest`): a word with `kategori = oyun_dili` in
+   `karistirilabilir_kelimeler.csv` is taken out before the models score the sentence only when one of that
+   word's `baglam_ipuclari` (match, round, gg, boss...) is within 6 words of it in the same sentence, as
+   `ayarlar.toml` says. So "gg, I will kill you next round" is allowed on `demo_oyun`, while "I hope you die in a
+   fire" and "I will kill you and your whole family" are still threats there. Listed phrases ("kys", "kill
+   yourself") are never taken out: they are starred, scored and can be red.
+   **Status: bekliyor.** Changed on the integration branch (18 Oct), for the team review: before, (a) the words
+   were taken out whatever the context, so the three threats above were allowed on `demo_oyun`, and (b) "kill
+   yourself" written out was not found (only `kys` was: list keys are single words). Now a listed phrase is
+   found as written (`pipeline/profanity.py`, `PHRASES`) and game words need a clue (`pipeline/text.py`,
+   `without_game_words()`). `tests/test_check.py` uses "gg, I will kill you next round" instead of "I will kill
+   you" for the game test.
+10. **Spam** has points in the PDF but no rule: 3 or more links, or one word **or phrase of up to 3 words**
+    repeated at least 8 times and making up more than 60 % of the message ("follow me" × 8 is spam).
+    **Status: bekliyor.** The phrase part was added on the integration branch (18 Oct), for the team review.
+    The rule is in the code (`pipeline/text.py`, `SPAM_*`), not in `ayarlar.toml`.
 11. **Model 2 runs only for sentences with harm or wordless harm ≥ 0.25**, and `category` is reported only
     for yellow and red, to keep the latency down.
     **Status: bekliyor.** Checked: matches the code.

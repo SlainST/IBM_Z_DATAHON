@@ -88,10 +88,26 @@ def test_quoted_threat_is_held(mod, uid):
 
 
 def test_game_words_free_on_game_platform(mod, uid):
-    game = mod.check("demo_oyun", msg(uid, "I will kill you"))
-    social = mod.check("demo_sosyal", msg(uid, "I will kill you"))
+    game = mod.check("demo_oyun", msg(uid, "gg, I will kill you next round"))
+    social = mod.check("demo_sosyal", msg(uid, "gg, I will kill you next round"))
     assert game["decision"] == "allow"
     assert social["decision"] == "block" and social["reason"] == "threat"
+
+
+def test_game_words_need_game_context(mod, uid):
+    for text in ("I will kill you and your whole family", "I hope you die in a fire"):
+        r = mod.check("demo_oyun", msg(uid, text))
+        assert r["decision"] == "block" and r["reason"] == "threat", text
+
+
+def test_kill_yourself_written_out_is_listed(mod, uid):
+    r = mod.check("demo_oyun", msg(uid, "gg noob, kill yourself"))
+    assert r["decision"] == "block" and "kill yourself" in r["key_words"]
+
+
+def test_repeated_phrase_is_spam(mod, uid):
+    r = mod.check("demo_sosyal", msg(uid, "follow me " * 8))
+    assert r["decision"] == "block" and r["reason"] == "spam"
 
 
 def test_spaced_and_lookalike_profanity(mod, uid):
