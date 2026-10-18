@@ -125,7 +125,7 @@ Ayrıntı: [`safenet/models/README.md`](safenet/models/README.md).
   API sözleşmesi (alanlar, tipler) değişmedi.
 - **Diğer:** GitHub Actions ile testler, kullanılmayan v0.1 prototip modülleri silindi, dokümanlar güncellendi.
 
-Testler: lokalde 147 geçti (7 model testi model dosyası olmadan atlanır), sunucuda v4 modelleriyle 154 geçti.
+Testler: lokalde 149 geçti (7 model testi model dosyası olmadan atlanır), sunucuda v4 modelleriyle 156 geçti.
 Veritabanı şeması ve paketler değişmedi.
 
 ## Kimin ne yapması gerekiyor
